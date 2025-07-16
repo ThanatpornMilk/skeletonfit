@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/workout_sets.dart';
 import 'home_screen.dart';
-import '../widgets/button.dart';  
+import '../widgets/button.dart';
 
 class CustomScreen extends StatefulWidget {
-  const CustomScreen({Key? key}) : super(key: key);
+  const CustomScreen({super.key}); // ✅ แก้ให้ใช้ super.key
 
   @override
   State<CustomScreen> createState() => _CustomScreenState();
@@ -47,10 +47,7 @@ class _CustomScreenState extends State<CustomScreen> {
 
   void _toggle(ExerciseInfo ex) {
     setState(() {
-      if (_selected.contains(ex))
-        _selected.remove(ex);
-      else
-        _selected.add(ex);
+      _selected.contains(ex) ? _selected.remove(ex) : _selected.add(ex);
     });
   }
 
@@ -60,151 +57,158 @@ class _CustomScreenState extends State<CustomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFF181717);
-
+    final bg = const Color(0xFF181717); // ✅ ใช้ใน runtime เท่านั้น
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: bg,
-          statusBarIconBrightness: Brightness.light,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-            );
-          },
-        ),
-        centerTitle: true,
-        title: const Text('Custom', style: TextStyle(color: Colors.white)),
-      ),
+      appBar: _buildAppBar(context, bg),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            _buildSearchAndFilter(),
+            _buildExerciseGrid(),
+            _buildNextButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  AppBar _buildAppBar(BuildContext context, Color bg) {
+    return AppBar(
+      backgroundColor: bg,
+      elevation: 0,
+      systemOverlayStyle: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF181717),
+        statusBarIconBrightness: Brightness.light,
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
+          );
+        },
+      ),
+      centerTitle: true,
+      title: const Text('Custom', style: TextStyle(color: Colors.white)),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white12,
+                hintText: 'ค้นหาท่าออกกำลังกาย',
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              // TODO: เปิด dialog สำหรับ filter
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white12,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white12,
-                        hintText: 'ค้นหาท่าออกกำลังกาย',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.white54),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      // TODO: เปิด dialog สำหรับ filter
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.white12,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.filter_list, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text('Filter Area',
-                              style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                  ),
+                children: const [
+                  Icon(Icons.filter_list, color: Colors.white),
+                  SizedBox(width: 4),
+                  Text('Filter Area', style: TextStyle(color: Colors.white)),
                 ],
               ),
             ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _filtered.length,
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.8,
-                ),
-                itemBuilder: (ctx, i) {
-                  final ex = _filtered[i];
-                  final sel = _selected.contains(ex);
-                  return GestureDetector(
-                    onTap: () => _toggle(ex),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color:
-                                  sel ? Colors.greenAccent : Colors.transparent,
-                              width: 3,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 36,
-                            backgroundColor: Colors.white12,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Image.asset(
-                                ex.image,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(
-                                  Icons.fitness_center,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          ex.name,
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: sel ? Colors.greenAccent : Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Button(
-                onPressed: _onNext,                       
-                isEnabled: _selected.isNotEmpty,          
-                buttonText: 'Next',
-              ),
-            ),
-          ],
+  Widget _buildExerciseGrid() {
+    return Expanded(
+      child: GridView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _filtered.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.8,
         ),
+        itemBuilder: (ctx, i) {
+          final ex = _filtered[i];
+          final sel = _selected.contains(ex);
+          return GestureDetector(
+            onTap: () => _toggle(ex),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: sel ? Colors.greenAccent : Colors.transparent,
+                      width: 3,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.white12,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Image.asset(
+                        ex.image,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.fitness_center,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  ex.name,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: sel ? Colors.greenAccent : Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNextButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Button(
+        onPressed: _onNext,
+        isEnabled: _selected.isNotEmpty,
+        buttonText: 'Next',
       ),
     );
   }

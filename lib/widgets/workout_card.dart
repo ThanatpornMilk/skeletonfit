@@ -7,7 +7,7 @@ import '../screens/exercise_screen/full_screen.dart';
 
 class WorkoutCard extends StatefulWidget {
   final WorkoutSet workoutSet;
-  const WorkoutCard({Key? key, required this.workoutSet}) : super(key: key);
+  const WorkoutCard({super.key, required this.workoutSet}); // ✅ ใช้ super.key
 
   @override
   State<WorkoutCard> createState() => _WorkoutCardState();
@@ -93,7 +93,7 @@ class _WorkoutCardState extends State<WorkoutCard>
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withAlpha(102), // 0.4 * 255 ≈ 102
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -107,7 +107,7 @@ class _WorkoutCardState extends State<WorkoutCard>
                     Text(
                       widget.workoutSet.subtitle,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withAlpha(204), // 0.8 * 255 ≈ 204
                         fontWeight: FontWeight.w500,
                         fontSize: 16,
                         letterSpacing: 0.5,
@@ -156,11 +156,11 @@ class _WorkoutCardState extends State<WorkoutCard>
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withAlpha(13), // 0.05 * 255 ≈ 13
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withAlpha(51), // 0.2 * 255 ≈ 51
                         blurRadius: 6,
                         offset: const Offset(0, 3),
                       ),

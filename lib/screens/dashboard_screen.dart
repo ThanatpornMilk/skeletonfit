@@ -2,20 +2,10 @@ import 'package:flutter/material.dart';
 import '../widgets/navbar.dart';
 import '../widgets/gradient_background.dart';
 
-
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedIndex = 1;
-
-  void _onTap(int index) {
-    if (index == _selectedIndex) return;
-
+  void _onTap(BuildContext context, int index) {
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/home');
@@ -30,9 +20,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const int selectedIndex = 1;
+
     return Scaffold(
       body: GradientBackground(
-        child: Center(
+        child: const Center(
           child: Text(
             'Setting Page',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -40,8 +32,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       bottomNavigationBar: NavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onTap,
+        currentIndex: selectedIndex,
+        onTap: (index) => _onTap(context, index),
       ),
     );
   }

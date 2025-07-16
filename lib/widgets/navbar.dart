@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/custom_screen.dart'; // เพิ่มการนำเข้า CustomScreen
+import '../screens/custom_screen.dart'; 
 
 class NavBar extends StatelessWidget {
   final int currentIndex;
@@ -14,13 +14,13 @@ class NavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Color.fromRGBO(0, 0, 0, 0.1), 
             blurRadius: 6,
-            offset: const Offset(0, -3),
+            offset: Offset(0, -3),
           ),
         ],
       ),
@@ -31,10 +31,10 @@ class NavBar extends StatelessWidget {
         currentIndex: currentIndex,
         onTap: (index) {
           onTap(index);
-          if (index == 2) { // กรณีที่เลือกแท็บ "Custom"
+          if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const CustomScreen()), // เปลี่ยนหน้าไปที่ CustomScreen
+              MaterialPageRoute(builder: (context) => const CustomScreen()),
             );
           }
         },
