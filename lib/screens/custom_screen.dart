@@ -5,7 +5,7 @@ import 'home_screen.dart';
 import '../widgets/button.dart';
 
 class CustomScreen extends StatefulWidget {
-  const CustomScreen({super.key}); // ✅ แก้ให้ใช้ super.key
+  const CustomScreen({super.key});
 
   @override
   State<CustomScreen> createState() => _CustomScreenState();
@@ -57,15 +57,15 @@ class _CustomScreenState extends State<CustomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = const Color(0xFF181717); // ✅ ใช้ใน runtime เท่านั้น
+    final bg = const Color(0xFF181717);
     return Scaffold(
       backgroundColor: bg,
-      appBar: _buildAppBar(context, bg),
+      appBar: _buildAppBar(bg),
       body: SafeArea(
         child: Column(
           children: [
             _buildSearchAndFilter(),
-            _buildExerciseGrid(),
+            _buildExerciseGrid(bg),
             _buildNextButton(),
           ],
         ),
@@ -73,10 +73,12 @@ class _CustomScreenState extends State<CustomScreen> {
     );
   }
 
-  AppBar _buildAppBar(BuildContext context, Color bg) {
+  AppBar _buildAppBar(Color bg) {
     return AppBar(
       backgroundColor: bg,
       elevation: 0,
+      shadowColor: Colors.transparent,            
+      surfaceTintColor: Colors.transparent,       
       systemOverlayStyle: const SystemUiOverlayStyle(
         statusBarColor: Color(0xFF181717),
         statusBarIconBrightness: Brightness.light,
@@ -142,62 +144,65 @@ class _CustomScreenState extends State<CustomScreen> {
     );
   }
 
-  Widget _buildExerciseGrid() {
+  Widget _buildExerciseGrid(Color bgColor) {
     return Expanded(
-      child: GridView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _filtered.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.8,
-        ),
-        itemBuilder: (ctx, i) {
-          final ex = _filtered[i];
-          final sel = _selected.contains(ex);
-          return GestureDetector(
-            onTap: () => _toggle(ex),
-            child: Column(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: sel ? Colors.greenAccent : Colors.transparent,
-                      width: 3,
+      child: Container(
+        color: bgColor, 
+        child: GridView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: _filtered.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.8,
+          ),
+          itemBuilder: (ctx, i) {
+            final ex = _filtered[i];
+            final sel = _selected.contains(ex);
+            return GestureDetector(
+              onTap: () => _toggle(ex),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: sel ? Colors.greenAccent : Colors.transparent,
+                        width: 3,
+                      ),
                     ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.white12,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset(
-                        ex.image,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.fitness_center,
-                          color: Colors.white54,
+                    child: CircleAvatar(
+                      radius: 36,
+                      backgroundColor: Colors.white12,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          ex.image,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.fitness_center,
+                            color: Colors.white54,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  ex.name,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: sel ? Colors.greenAccent : Colors.white70,
-                    fontSize: 12,
+                  const SizedBox(height: 8),
+                  Text(
+                    ex.name,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: sel ? Colors.greenAccent : Colors.white70,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
