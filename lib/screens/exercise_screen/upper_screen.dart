@@ -33,6 +33,7 @@ class UpperBodyScreen extends StatelessWidget {
                 },
                 isEnabled: true,
                 buttonText: 'เริ่มออกกำลังกาย',
+                icon: Icons.play_arrow,
               ),
             ],
           ),

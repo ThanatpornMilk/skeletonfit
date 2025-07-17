@@ -12,7 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int currentIndex = 0;
   int pageIndex = 0;
 
   @override
@@ -39,9 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: NavBar(
-        currentIndex: currentIndex,
-        onTap: (idx) => setState(() => currentIndex = idx),
+      bottomNavigationBar: const NavBar(
+        currentIndex: 0, 
       ),
     );
   }

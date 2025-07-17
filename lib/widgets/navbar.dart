@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import '../screens/custom_screen.dart'; 
+import '../screens/home_screen.dart';
+import '../screens/dashboard_screen.dart';
+import '../screens/custom_screen/custom_screen.dart';
 
 class NavBar extends StatelessWidget {
   final int currentIndex;
-  final Function(int) onTap;
 
   const NavBar({
     super.key,
     required this.currentIndex,
-    required this.onTap,
   });
 
   @override
@@ -18,7 +18,7 @@ class NavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.1), 
+            color: Color.fromRGBO(0, 0, 0, 0.1),
             blurRadius: 6,
             offset: Offset(0, -3),
           ),
@@ -30,13 +30,21 @@ class NavBar extends StatelessWidget {
         elevation: 0,
         currentIndex: currentIndex,
         onTap: (index) {
-          onTap(index);
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CustomScreen()),
-            );
+          if (index == currentIndex) return;
+
+          Widget targetPage;
+          if (index == 0) {
+            targetPage = const HomeScreen();
+          } else if (index == 1) {
+            targetPage = const DashboardScreen();
+          } else {
+            targetPage = const CustomScreen();
           }
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => targetPage),
+          );
         },
         iconSize: 28,
         selectedItemColor: Colors.black87,
@@ -45,9 +53,7 @@ class NavBar extends StatelessWidget {
           fontSize: 14,
           fontWeight: FontWeight.bold,
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 14,
-        ),
+        unselectedLabelStyle: const TextStyle(fontSize: 14),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

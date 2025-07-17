@@ -44,6 +44,7 @@ class FullBodyScreen extends StatelessWidget {
                 },
                 isEnabled: true,
                 buttonText: 'เริ่มออกกำลังกาย',
+                icon: Icons.play_arrow,
               ),
             ],
           ),
