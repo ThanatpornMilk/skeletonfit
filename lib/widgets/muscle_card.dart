@@ -69,7 +69,7 @@ class MuscleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF299B57).withAlpha(23), // 0.09 * 255 ≈ 23
+            color: const Color(0xFF299B57).withAlpha(23), 
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
