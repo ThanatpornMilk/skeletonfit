@@ -93,7 +93,7 @@ class WelcomeScreen extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'tap to start',
+            'press any to start',
             style: TextStyle(
               fontSize: 24,
               color: Colors.white70,

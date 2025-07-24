@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../widgets/navbar.dart';
 import '../data/workout_sets.dart';
 import '../widgets/workout_card.dart';
+import '../screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -131,13 +132,28 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const CircleAvatar(
-            radius: 24,
-            backgroundColor: Color.fromRGBO(255, 255, 255, 0.24),
-            child: Icon(
-              Icons.person,
-              color: Color.fromRGBO(255, 255, 255, 0.7),
-              size: 24,
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+              child: const CircleAvatar(
+                radius: 24,
+                backgroundColor: Color.fromRGBO(255, 255, 255, 0.24),
+                child: Icon(
+                  Icons.person,
+                  color: Color.fromRGBO(255, 255, 255, 0.7),
+                  size: 24,
+                ),
+              ),
             ),
           ),
         ],
