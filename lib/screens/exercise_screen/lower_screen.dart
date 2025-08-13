@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/exercise_list_view.dart';
 import '../../data/workout_sets.dart';
 import '../../widgets/button.dart';
+import '../../screens/camera_screen.dart';
 
 class LowerBodyScreen extends StatelessWidget {
   const LowerBodyScreen({super.key});
@@ -29,7 +30,10 @@ class LowerBodyScreen extends StatelessWidget {
               ),
               Button(
                 onPressed: () {
-                  // TODO: implement start logic
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CameraScreen()),
+                  );
                 },
                 isEnabled: true,
                 buttonText: 'เริ่มออกกำลังกาย',

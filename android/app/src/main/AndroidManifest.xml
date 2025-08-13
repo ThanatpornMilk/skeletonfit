@@ -1,6 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.skeletonfit">
 
-    <!-- 👇 เพิ่ม permission ด้านล่างนี้ก่อนเปิด <application> -->
+    <!-- 👇 Permissions สำหรับการใช้กล้อง -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="true"/>
 
@@ -20,10 +22,9 @@
             android:windowSoftInputMode="adjustResize">
             
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
-              
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -35,6 +36,7 @@
             android:value="2" />
     </application>
 
+    <!-- 👇 Optional: ถ้าแอปคุณมี intent อื่น -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
