@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../data/workout_sets.dart';
-import 'custom_screen.dart';
 import '../../widgets/button.dart';
+import '../../data/workout_sets.dart';
+import '../../services/api_service.dart';
 
 class AddCustomScreen extends StatefulWidget {
   const AddCustomScreen({super.key});
@@ -13,25 +13,33 @@ class AddCustomScreen extends StatefulWidget {
 
 class _AddCustomScreenState extends State<AddCustomScreen> {
   final _searchController = TextEditingController();
-  late final List<ExerciseInfo> _allExercises;
-  late List<ExerciseInfo> _filtered;
+  List<ExerciseInfo> _allExercises = [];
+  List<ExerciseInfo> _filtered = [];
   final _selected = <ExerciseInfo>[];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    final combined = workoutSets.expand((ws) => ws.exercises);
-    final seenNames = <String>{};
-    _allExercises = combined.where((ex) => seenNames.add(ex.name)).toList();
-    _filtered = List.from(_allExercises);
+    _fetchExercises();
     _searchController.addListener(_onSearch);
   }
 
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearch);
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _fetchExercises() async {
+    try {
+      final sets = await ApiService.fetchWorkoutSets();
+      final combined = sets.expand((ws) => ws.exercises).toList();
+      final seenNames = <String>{};
+      _allExercises = combined.where((ex) => seenNames.add(ex.name)).toList();
+      _filtered = List.from(_allExercises);
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _onSearch() {
@@ -40,7 +48,7 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
       _filtered = q.isEmpty
           ? List.from(_allExercises)
           : _allExercises
-              .where((ex) => ex.name.toLowerCase().startsWith(q))
+              .where((ex) => ex.name.toLowerCase().contains(q))
               .toList();
     });
   }
@@ -56,12 +64,41 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
   }
 
   void _onNext() {
-    // TODO: นำชุดท่าที่เลือกไปใช้งานต่อ
+    if (_selected.isNotEmpty) {
+      final customSet = WorkoutSet(
+        id: DateTime.now().millisecondsSinceEpoch,
+        name: 'Custom Workout',
+        subtitle: '${_selected.length} ท่า',
+        muscles: _selected.expand((e) => e.muscles).toSet().toList(),
+        exercises: List.from(_selected),
+      );
+      Navigator.pop(context, customSet);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final bg = const Color(0xFF181717);
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF181717),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: bg,
+        body: Center(
+          child: Text(
+            'Error: $_error',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bg,
       appBar: _buildAppBar(bg),
@@ -72,7 +109,6 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // จุดไล่สีที่ 1 (มุมล่างซ้าย)
                   Container(
                     decoration: const BoxDecoration(
                       gradient: RadialGradient(
@@ -87,7 +123,6 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
                       ),
                     ),
                   ),
-                  // จุดไล่สีที่ 2 (มุมขวาบน)
                   Container(
                     decoration: const BoxDecoration(
                       gradient: RadialGradient(
@@ -140,12 +175,7 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
           child: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new,
                 color: Colors.white, size: 20),
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const CustomScreen()),
-                (route) => false,
-              );
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),

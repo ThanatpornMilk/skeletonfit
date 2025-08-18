@@ -1,6 +1,6 @@
 name: skeletonfit
 description: "A new Flutter project."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -17,6 +17,7 @@ dependencies:
   camera: ^0.10.5+9
   web_socket_channel: ^2.4.0
   image: ^4.0.17
+  http: ^1.1.0       
 
 dev_dependencies:
   flutter_test:
@@ -27,4 +28,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
-

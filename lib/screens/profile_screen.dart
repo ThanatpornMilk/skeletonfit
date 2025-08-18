@@ -1,231 +1,352 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
+      // ✅ ใช้ backgroundColor แบบเดียวกับ CustomScreen
       backgroundColor: const Color(0xFF181717),
-      body: Container(
-        decoration: _buildBackgroundGradient(),
-        child: Stack(
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildAppBar(context),
+                const SizedBox(height: 32),
+                _buildProfileHeader(),
+                const SizedBox(height: 40),
+                _buildInfoSection(),
+                const SizedBox(height: 32),
+                _buildActionButtons(context),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(255, 255, 255, 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color.fromRGBO(255, 255, 255, 0.2),
+              width: 1,
+            ),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.pop(context);
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
+        const Expanded(
+          child: Text(
+            'Profile',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(255, 255, 255, 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color.fromRGBO(255, 255, 255, 0.2),
+              width: 1,
+            ),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _showMoreOptions(context);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Column(
+      children: [
+        Stack(
           children: [
-            _buildBackgroundEffects(),
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 24),
-                    _buildAppBar(context),
-                    const SizedBox(height: 24),
-                    _buildProfileHeader(),
-                    const SizedBox(height: 24),
-                    _buildInfoSection(),
-                    const SizedBox(height: 32),
-                    _buildActionButtons(context),
-                    const SizedBox(height: 40),
-                  ],
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: const Color.fromRGBO(255, 255, 255, 0.05),
+              child: const Icon(
+                Icons.person,
+                color: Color.fromRGBO(255, 255, 255, 0.8),
+                size: 36,
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(255, 255, 255, 0.05),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 2),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Color.fromRGBO(255, 255, 255, 0.8),
+                  size: 14,
                 ),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'ชื่อของคุณ',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(255, 255, 255, 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 1),
+          ),
+          child: const Text(
+            'example@email.com',
+            style: TextStyle(
+              color: Color.fromRGBO(255, 255, 255, 0.8),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoSection() {
+    final infoItems = [
+      {'title': 'วันเกิด', 'value': '1 มกราคม 1995', 'icon': Icons.cake_outlined},
+      {'title': 'น้ำหนัก', 'value': '70 kg', 'icon': Icons.monitor_weight_outlined},
+      {'title': 'ส่วนสูง', 'value': '175 cm', 'icon': Icons.height},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color.fromRGBO(255, 255, 255, 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color.fromRGBO(255, 255, 255, 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'ข้อมูลส่วนตัว',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...infoItems.map((item) => _InfoTile(
+                title: item['title'] as String,
+                value: item['value'] as String,
+                icon: item['icon'] as IconData,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    final actions = [
+      {'icon': Icons.edit_outlined, 'label': 'แก้ไขโปรไฟล์'},
+      {'icon': Icons.settings_outlined, 'label': 'ตั้งค่า'},
+      {'icon': Icons.help_outline, 'label': 'ช่วยเหลือ'},
+      {'icon': Icons.logout_outlined, 'label': 'ออกจากระบบ', 'isDestructive': true},
+    ];
+
+    return Column(
+      children: actions.map((action) => _ProfileButton(
+            icon: action['icon'] as IconData,
+            label: action['label'] as String,
+            isDestructive: action['isDestructive'] == true,
+            onTap: () {
+              HapticFeedback.lightImpact();
+            },
+          )).toList(),
+    );
+  }
+
+  void _showMoreOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1A1B23),
+              Color(0xFF0F1419),
+            ],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(
+            color: const Color.fromRGBO(255, 255, 255, 0.1),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(255, 255, 255, 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'เพิ่มเติม',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ProfileButton(
+              icon: Icons.share_outlined,
+              label: 'แชร์โปรไฟล์',
+              onTap: () => Navigator.pop(context),
+            ),
+            _ProfileButton(
+              icon: Icons.privacy_tip_outlined,
+              label: 'ความเป็นส่วนตัว',
+              onTap: () => Navigator.pop(context),
             ),
           ],
         ),
       ),
     );
   }
-
-  // AppBar
-  Widget _buildAppBar(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Profile Image + Name
-  Widget _buildProfileHeader() {
-    return Column(
-      children: const [
-        CircleAvatar(
-          radius: 50,
-          backgroundColor: Color.fromRGBO(255, 255, 255, 0.24),
-          child: Icon(
-            Icons.person,
-            color: Color.fromRGBO(255, 255, 255, 0.7),
-            size: 50,
-          ),
-        ),
-        SizedBox(height: 16),
-        Text(
-          'Your Name',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          'example@email.com',
-          style: TextStyle(
-            color: Color.fromRGBO(255, 255, 255, 0.6),
-            fontSize: 16,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ข้อมูลส่วนตัว
-  Widget _buildInfoSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        _InfoTile(title: 'วันเกิด', value: '1 มกราคม 1995'),
-        _InfoTile(title: 'น้ำหนัก', value: '70 kg'),
-        _InfoTile(title: 'ส่วนสูง', value: '175 cm'),
-        _InfoTile(title: 'เป้าหมาย', value: 'ลดน้ำหนัก'),
-      ],
-    );
-  }
-
-  // ปุ่มฟังก์ชันต่าง ๆ
-  Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        _ProfileButton(
-          icon: Icons.edit,
-          label: 'แก้ไขโปรไฟล์',
-          onTap: () {
-            // TODO: นำไปหน้าแก้ไขโปรไฟล์
-          },
-        ),
-        _ProfileButton(
-          icon: Icons.settings,
-          label: 'ตั้งค่า',
-          onTap: () {
-            // TODO: นำไปหน้าตั้งค่า
-          },
-        ),
-        _ProfileButton(
-          icon: Icons.logout,
-          label: 'ออกจากระบบ',
-          onTap: () {
-            // TODO: ทำการ logout
-          },
-          color: Colors.redAccent,
-        ),
-      ],
-    );
-  }
-
-  // พื้นหลังไล่สี
-  BoxDecoration _buildBackgroundGradient() => const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF181717),
-            Color(0xFF181717),
-            Color(0xFF181717),
-          ],
-        ),
-      );
-
-  // วงแสง background
-  Widget _buildBackgroundEffects() {
-    return Stack(
-      children: [
-        Positioned(
-          top: 100,
-          right: -100,
-          child: Container(
-            width: 280,
-            height: 280,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Color.fromRGBO(255, 255, 255, 0.08),
-                  Color.fromRGBO(39, 174, 96, 0.01),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 100,
-          left: -80,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Color.fromRGBO(255, 255, 255, 0.06),
-                  Color.fromRGBO(39, 174, 96, 0.02),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
-
-// ----------------------------
-// Widgets ย่อย
-// ----------------------------
 
 class _InfoTile extends StatelessWidget {
   final String title;
   final String value;
+  final IconData icon;
 
   const _InfoTile({
     required this.title,
     required this.value,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Text(
-            '$title: ',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(255, 255, 255, 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 1),
+            ),
+            child: Icon(
+              icon,
+              color: const Color.fromRGBO(255, 255, 255, 0.8),
+              size: 16,
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color.fromRGBO(255, 255, 255, 0.7),
-              fontSize: 16,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color.fromRGBO(255, 255, 255, 0.6),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -234,43 +355,80 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-class _ProfileButton extends StatelessWidget {
+class _ProfileButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color? color;
+  final bool isDestructive;
 
   const _ProfileButton({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color,
+    this.isDestructive = false,
   });
 
   @override
+  State<_ProfileButton> createState() => _ProfileButtonState();
+}
+
+class _ProfileButtonState extends State<_ProfileButton> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: color ?? const Color.fromRGBO(255, 255, 255, 0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
           borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            child: Row(
-              children: [
-                Icon(icon, color: Colors.white),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
+          child: AnimatedScale(
+            scale: _isPressed ? 0.98 : 1.0,
+            duration: const Duration(milliseconds: 100),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(255, 255, 255, 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color.fromRGBO(255, 255, 255, 0.1),
+                  width: 1,
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.icon,
+                    color: widget.isDestructive
+                        ? const Color(0xFFEF4444)
+                        : const Color.fromRGBO(255, 255, 255, 0.8),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      style: TextStyle(
+                        color: widget.isDestructive
+                            ? const Color(0xFFEF4444)
+                            : Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Color.fromRGBO(255, 255, 255, 0.3),
+                    size: 16,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
