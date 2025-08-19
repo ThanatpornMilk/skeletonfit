@@ -10,7 +10,6 @@ import 'screens/workout_screen.dart';
 // import 'screens/exercise_screen/lower_screen.dart';
 // import 'screens/exercise_screen/core_screen.dart';
 // import 'screens/exercise_screen/full_screen.dart';
-
 void main() {
   runApp(const MyApp());
 }

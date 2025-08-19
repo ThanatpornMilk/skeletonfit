@@ -19,6 +19,8 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
   bool _isLoading = true;
   String? _error;
 
+  Set<String> _selectedMuscles = {}; // เก็บกล้ามเนื้อที่เลือก
+
   @override
   void initState() {
     super.initState();
@@ -211,9 +213,7 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
           ),
           const SizedBox(width: 8),
           InkWell(
-            onTap: () {
-              // TODO: เปิด dialog สำหรับ filter
-            },
+            onTap: _showFilterDialog,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               decoration: BoxDecoration(
@@ -231,6 +231,72 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showFilterDialog() async {
+    final allMuscles = _allExercises.expand((e) => e.muscles).toSet().toList()..sort();
+    final tempSelected = Set<String>.from(_selectedMuscles);
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF181717),
+          title: const Text('เลือกกล้ามเนื้อ', style: TextStyle(color: Colors.white)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: allMuscles.length,
+              itemBuilder: (ctx, i) {
+                final muscle = allMuscles[i];
+                final isSelected = tempSelected.contains(muscle);
+                return StatefulBuilder(
+                  builder: (ctx2, setState2) {
+                    return CheckboxListTile(
+                      value: isSelected,
+                      title: Text(muscle, style: const TextStyle(color: Colors.white)),
+                      activeColor: Colors.greenAccent,
+                      onChanged: (val) {
+                        setState2(() {
+                          if (val == true) {
+                            tempSelected.add(muscle);
+                          } else {
+                            tempSelected.remove(muscle);
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก', style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedMuscles = tempSelected;
+                  if (_selectedMuscles.isEmpty) {
+                    _filtered = List.from(_allExercises);
+                  } else {
+                    _filtered = _allExercises
+                        .where((ex) => ex.muscles.any((m) => _selectedMuscles.contains(m)))
+                        .toList();
+                  }
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('ตกลง', style: TextStyle(color: Colors.greenAccent)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -305,7 +371,7 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: sel ? Colors.greenAccent : Colors.white70,
-                  fontSize: 12,
+                  fontSize: 13, // ขนาดชื่อท่าเพิ่มขึ้น
                 ),
               ),
             ],
@@ -321,7 +387,7 @@ class _AddCustomScreenState extends State<AddCustomScreen> {
       child: Button(
         onPressed: _onNext,
         isEnabled: _selected.isNotEmpty,
-        buttonText: 'Next',
+        buttonText: 'ถัดไป',
       ),
     );
   }
