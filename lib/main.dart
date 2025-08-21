@@ -6,13 +6,8 @@ import 'screens/custom_screen/custom_screen.dart';
 import 'screens/custom_screen/add_custom_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/workout_screen.dart';
-// import 'screens/exercise_screen/upper_screen.dart';
-// import 'screens/exercise_screen/lower_screen.dart';
-// import 'screens/exercise_screen/core_screen.dart';
-// import 'screens/exercise_screen/full_screen.dart';
-void main() {
-  runApp(const MyApp());
-}
+
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -22,29 +17,24 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: '/welcome',
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/welcome':
-            return MaterialPageRoute(builder: (_) => const WelcomeScreen());
-          case '/home':
-            return MaterialPageRoute(builder: (_) => const HomeScreen());
-          case '/dashboard':
-            return MaterialPageRoute(builder: (_) => const DashboardScreen());
-          case '/custom':
-            return MaterialPageRoute(builder: (_) => const CustomScreen());
-          case '/addcustom':
-            return MaterialPageRoute(builder: (_) => const AddCustomScreen());
-          case '/profile':
-            return MaterialPageRoute(builder: (_) => const ProfileScreen());
-          case '/workout':
-            final workoutName = settings.arguments as String;
-            return MaterialPageRoute(
-              builder: (_) => WorkoutScreen(workoutName: workoutName),
-            );
-          default:
-            return null;
-        }
+      routes: {
+        '/welcome': (_) => const WelcomeScreen(),
+        '/home': (_) => const HomeScreen(),
+        '/dashboard': (_) => const DashboardScreen(),
+        '/custom': (_) => const CustomScreen(),
+        '/addcustom': (_) => const AddCustomScreen(),
+        '/profile': (_) => const ProfileScreen(),
       },
+      // หน้าที่ต้องส่ง argument แบบพิเศษ ค่อยกำหนดที่นี่เป็นรายเคส
+      onGenerateRoute: (settings) {
+        if (settings.name == '/workout' && settings.arguments is String) {
+          return MaterialPageRoute(
+            builder: (_) => WorkoutScreen(workoutName: settings.arguments as String),
+          );
+        }
+        return null;
+      },
+      theme: ThemeData(useMaterial3: true),
     );
   }
 }

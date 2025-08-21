@@ -14,13 +14,15 @@ class CustomScreen extends StatefulWidget {
 class _CustomScreenState extends State<CustomScreen> {
   final List<WorkoutSet> _customSets = [];
 
-  void _navigateToAddCustom() async {
+  Future<void> _navigateToAddCustom() async {
     final newSet = await Navigator.push<WorkoutSet>(
       context,
       MaterialPageRoute(builder: (_) => const AddCustomScreen()),
     );
+    if (!mounted) return;
     if (newSet != null) {
       setState(() => _customSets.add(newSet));
+      // (ถ้าต้องการ persist ให้ต่อ SharedPreferences/DB ตรงนี้ได้)
     }
   }
 
@@ -42,15 +44,13 @@ class _CustomScreenState extends State<CustomScreen> {
             child: IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: _navigateToAddCustom,
+              tooltip: 'สร้าง Custom Workout',
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.white24,
-            height: 1,
-          ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: Colors.white24),
         ),
       ),
       body: _customSets.isEmpty

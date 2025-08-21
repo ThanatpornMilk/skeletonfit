@@ -92,7 +92,15 @@ class _CustomWorkoutCardState extends State<CustomWorkoutCard>
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.workoutSet.subtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Expanded(child: Center(child: _buildExerciseIcons())),
                   ],
                 ),
