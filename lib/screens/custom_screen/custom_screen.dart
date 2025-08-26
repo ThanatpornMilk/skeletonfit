@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/navbar.dart';
-import '../../widgets/custom_workout_card.dart';
+import '../../widgets/workout_card.dart';
 import '../../data/workout_sets.dart';
 import 'add_custom_screen.dart';
 
@@ -22,7 +22,7 @@ class _CustomScreenState extends State<CustomScreen> {
     if (!mounted) return;
     if (newSet != null) {
       setState(() => _customSets.add(newSet));
-      // (ถ้าต้องการ persist ให้ต่อ SharedPreferences/DB ตรงนี้ได้)
+      // TODO: ถ้าต้องการ persist ใส่ SharedPreferences/DB ตรงนี้
     }
   }
 
@@ -67,7 +67,7 @@ class _CustomScreenState extends State<CustomScreen> {
                 itemCount: _customSets.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 20),
                 itemBuilder: (context, index) {
-                  return CustomWorkoutCard(workoutSet: _customSets[index]);
+                  return WorkoutCard(workoutSet: _customSets[index]); // <- ใช้การ์ดนี้
                 },
               ),
             ),
