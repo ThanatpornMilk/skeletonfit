@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/workout_sets.dart';
+import '../data/exercises.dart';
 
 const double kControlWidth = 132;       
 const double kLabelSlotWidth = 32;      

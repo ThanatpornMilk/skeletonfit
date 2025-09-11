@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/workout_sets.dart';
+import '../data/exercises.dart';
 
 class ExerciseGrid extends StatelessWidget {
   final List<ExerciseInfo> items;

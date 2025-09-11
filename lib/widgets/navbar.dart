@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/dashboard_screen.dart';
-import '../screens/custom_screen/custom_screen.dart';
+// import '../screens/custom_screen/custom_screen.dart';
 
 class NavBar extends StatelessWidget {
   final int currentIndex;
@@ -38,7 +38,10 @@ class NavBar extends StatelessWidget {
           } else if (index == 1) {
             targetPage = const DashboardScreen();
           } else {
-            targetPage = const CustomScreen();
+            // กรณีไม่มีหน้า custom ยังไม่เปิดใช้งาน ให้กลับหน้า Home ชั่วคราว
+            targetPage = const HomeScreen();
+            // หากมีหน้า custom จริง ๆ:
+            // targetPage = const CustomScreen();
           }
 
           Navigator.pushReplacement(

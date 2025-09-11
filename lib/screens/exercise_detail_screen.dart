@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/workout_sets.dart';
+import '../data/exercises.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseInfo exercise;

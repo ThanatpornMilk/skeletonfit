@@ -1,30 +1,26 @@
 import 'package:flutter/material.dart';
-import '../data/workout_sets.dart';
-import 'muscle_card.dart';
+import '../data/exercises.dart';
 import '../screens/exercise_detail_screen.dart';
 
 class ExerciseListView extends StatelessWidget {
   final List<ExerciseInfo> exercises;
-  final List<String> muscles;
 
   const ExerciseListView({
     super.key,
     required this.exercises,
-    required this.muscles,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: exercises.length + 1,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32), 
+      itemCount: exercises.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        if (index == 0) return MuscleCard(muscles: muscles);
-        final ex = exercises[index - 1];
+        final ex = exercises[index];
         return AnimatedExerciseCard(
           exercise: ex,
-          delay: Duration(milliseconds: 100 * (index - 1)),
+          delay: Duration(milliseconds: 100 * index),
         );
       },
     );
@@ -47,21 +43,27 @@ class AnimatedExerciseCard extends StatefulWidget {
 
 class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
     with TickerProviderStateMixin {
-  late final AnimationController _slideCtrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600));
-  late final AnimationController _hoverCtrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 200));
+  late final AnimationController _slideCtrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final AnimationController _hoverCtrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
 
-  late final Animation<Offset> _slideAnim =
-      Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-          CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
-  late final Animation<double> _fadeAnim = Tween<double>(begin: 0, end: 1)
-      .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeInOut));
-  late final Animation<double> _scaleAnim = Tween<double>(begin: 0.8, end: 1.0)
-      .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutBack));
-  late final Animation<double> _hoverAnim =
-      Tween<double>(begin: 1.0, end: 1.02).animate(
-          CurvedAnimation(parent: _hoverCtrl, curve: Curves.easeInOut));
+  late final Animation<Offset> _slideAnim = Tween<Offset>(
+    begin: const Offset(0, 0.5),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+
+  late final Animation<double> _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+    CurvedAnimation(parent: _slideCtrl, curve: Curves.easeInOut),
+  );
+
+  late final Animation<double> _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+    CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutBack),
+  );
+
+  late final Animation<double> _hoverAnim = Tween<double>(begin: 1.0, end: 1.02).animate(
+    CurvedAnimation(parent: _hoverCtrl, curve: Curves.easeInOut),
+  );
 
   bool _isHovered = false;
 
@@ -127,8 +129,7 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    ExerciseDetailScreen(exercise: widget.exercise),
+                builder: (_) => ExerciseDetailScreen(exercise: widget.exercise),
               ),
             );
           },
@@ -213,8 +214,7 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Container(
             color: Colors.grey[300],
-            child: const Icon(Icons.fitness_center,
-                color: Colors.grey, size: 24),
+            child: const Icon(Icons.fitness_center, color: Colors.grey, size: 24),
           ),
         ),
       ),
@@ -251,8 +251,7 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Icon(Icons.fitness_center,
-                    color: Colors.white, size: 12),
+                child: const Icon(Icons.fitness_center, color: Colors.white, size: 12),
               ),
               const SizedBox(width: 6),
               Text(
