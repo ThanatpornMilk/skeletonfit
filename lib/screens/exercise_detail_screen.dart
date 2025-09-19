@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/exercises.dart';
+import '../widgets/button.dart';
+import 'camera_screen.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseInfo exercise;
@@ -14,6 +16,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   final Color green = const Color(0xFF2E9265);
   final ScrollController _scrollController = ScrollController();
   double _offset = 0;
+  late TextEditingController _setsController;
+  late TextEditingController _repsController;
 
   @override
   void initState() {
@@ -21,11 +25,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     _scrollController.addListener(() {
       setState(() => _offset = _scrollController.offset * 0.5);
     });
+    _setsController = TextEditingController(text: widget.exercise.sets);
+    _repsController = TextEditingController(text: widget.exercise.reps);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _setsController.dispose();
+    _repsController.dispose();
     super.dispose();
   }
 
@@ -38,25 +46,47 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                _buildSliverAppBar(exercise),
-                SliverPadding(
-                  padding: const EdgeInsets.all(20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildExerciseInfo(exercise),
-                      if (exercise.muscles.isNotEmpty) _buildMuscleTags(exercise),
-                      const SizedBox(height: 24),
-                      if (exercise.steps.isNotEmpty) _buildSection("คำแนะนำ", exercise.steps),
-                      if (exercise.tips.isNotEmpty) _buildTips(exercise),
-                      _buildBenefits(exercise),
-                      const SizedBox(height: 20),
-                    ]),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  _buildSliverAppBar(exercise),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildExerciseInfo(exercise),
+                        if (exercise.muscles.isNotEmpty) _buildMuscleTags(exercise),
+                        const SizedBox(height: 24),
+                        if (exercise.steps.isNotEmpty)
+                          _buildSection("คำแนะนำ", exercise.steps),
+                        if (exercise.tips.isNotEmpty) _buildTips(exercise),
+                        _buildBenefits(exercise),
+                        const SizedBox(height: 20),
+                      ]),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Button(
+                buttonText: "เริ่มออกกำลังกาย",
+                isEnabled: true,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CameraScreen(exercise: widget.exercise),
+                    ),
+                  );
+                },
+                icon: Icons.play_arrow,
+              ),
             ),
             _buildCloseButton(),
           ],
@@ -119,17 +149,16 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       decoration: BoxDecoration(
         color: const Color.fromRGBO(244, 67, 54, 0.9),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color.fromRGBO(244, 67, 54, 0.3), blurRadius: 8, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(color: Color.fromRGBO(244, 67, 54, 0.3), blurRadius: 8, offset: Offset(0, 2)),
+        ],
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.play_arrow, color: Colors.white, size: 16),
           SizedBox(width: 4),
-          Text(
-            "วิดีโอท่าท่า",
-            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-          ),
+          Text("วิดีโอท่า", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -154,12 +183,69 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatCard("เซต", exercise.sets, Icons.repeat, green),
+              _buildEditableStatCard("เซต", _setsController, Icons.repeat, green),
               Container(height: 30, width: 1, color: const Color.fromRGBO(158, 158, 158, 1)),
-              _buildStatCard("ครั้ง", exercise.reps, Icons.fitness_center, green),
+              _buildEditableStatCard("ครั้ง", _repsController, Icons.fitness_center, green),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEditableStatCard(String label, TextEditingController controller, IconData icon, Color iconColor) {
+    return Column(
+      children: [
+        Icon(icon, color: iconColor, size: 24),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildIconAdjustButton(
+              icon: Icons.remove,
+              onPressed: () {
+                setState(() {
+                  int value = int.tryParse(controller.text) ?? 1;
+                  if (value > 1) {
+                    value--;
+                    controller.text = value.toString();
+                  }
+                });
+              },
+            ),
+            Container(
+              width: 40,
+              alignment: Alignment.center,
+              child: Text(
+                controller.text,
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            _buildIconAdjustButton(
+              icon: Icons.add,
+              onPressed: () {
+                setState(() {
+                  int value = int.tryParse(controller.text) ?? 1;
+                  value++;
+                  controller.text = value.toString();
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildIconAdjustButton({required IconData icon, required VoidCallback onPressed}) {
+    return InkWell(
+      onTap: onPressed,
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: Icon(icon, color: Colors.white, size: 16),
       ),
     );
   }
@@ -270,25 +356,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         _buildSectionTitle("ประโยชน์"),
         const SizedBox(height: 12),
         Container(
+          width: double.infinity, 
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color.fromRGBO(18, 18, 18, 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
           ),
-          child: Text(exercise.benefits, style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4)),
+          child: Text(
+            exercise.benefits,
+            style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4),
+          ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon, Color iconColor) {
-    return Column(
-      children: [
-        Icon(icon, color: iconColor, size: 24),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
       ],
     );
   }

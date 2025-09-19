@@ -1,23 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
-
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../data/exercises.dart';  
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final ExerciseInfo exercise;   
+
+  const CameraScreen({super.key, required this.exercise});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  CameraController? _cameraController;         // <- nullable
-  WebSocketChannel? _channel;                  // <- nullable
+  CameraController? _cameraController;        
+  WebSocketChannel? _channel;                
   bool _isStreaming = false;
 
   String _pose = "N/A";
@@ -46,8 +48,8 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     _isStreaming = false;
-    _cameraController?.dispose();        // <- null-safe
-    _channel?.sink.close();              // <- null-safe
+    _cameraController?.dispose();       
+    _channel?.sink.close();              
     super.dispose();
   }
 
@@ -177,7 +179,9 @@ class _CameraScreenState extends State<CameraScreen> {
     final initialized = _cameraController?.value.isInitialized ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Real-Time Pose Detection")),
+      appBar: AppBar(
+        title: Text("Real-Time Pose Detection - ${widget.exercise.name}"), 
+      ),
       body: initialized
           ? Stack(
               children: [
