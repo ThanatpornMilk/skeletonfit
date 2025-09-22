@@ -5,6 +5,8 @@ import '../widgets/exercise_list_view.dart';
 import '../screens/profile_screen.dart';
 import '../services/api_service.dart';
 import '../data/exercises.dart';
+import '../widgets/search_filter_bar.dart';
+import '../widgets/muscle_filter_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,11 +15,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+  Set<String> _selectedMuscles = {};
 
   @override
   void initState() {
@@ -48,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -63,9 +71,73 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             _buildBackgroundEffects(),
             SafeArea(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  Expanded(child: _buildExerciseList()), 
+
+                  // Search + Filter
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                    child: SearchFilterBar(
+                      controller: _searchController,
+                      onTapFilter: () async {
+                        final allExercises =
+                            await ApiService.fetchExercises();
+                        if (!mounted) return;
+
+                        final allMuscles = allExercises
+                            .expand((e) => e.muscles)
+                            .toSet()
+                            .toList();
+
+                        if (!context.mounted) return;
+                        final result = await MuscleFilterDialog.show(
+                          context,
+                          allMuscles: allMuscles,
+                          initialSelected: _selectedMuscles,
+                        );
+
+                        if (!mounted) return;
+                        if (result != null) {
+                          setState(() {
+                            _selectedMuscles = result;
+                          });
+                        }
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      hint: "Search exercises...",
+                    ),
+                  ),
+
+                  // Filter Chips (แสดงเฉพาะถ้ามีเลือก muscle)
+                  if (_selectedMuscles.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _selectedMuscles.map((m) {
+                          return Chip(
+                            label: Text(m),
+                            labelStyle: const TextStyle(color: Colors.white),
+                            backgroundColor: const Color(0xFF2E9265),
+                            deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedMuscles.remove(m);
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                  // Exercise list
+                  Expanded(child: _buildExerciseList()),
                 ],
               ),
             ),
@@ -83,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         position: _slideAnimation,
         child: FutureBuilder<List<ExerciseInfo>>(
           future: ApiService.fetchExercises(),
-          builder: (context, snapshot) {
+          builder: (ctx, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return _buildLoading();
             }
@@ -93,7 +165,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return _buildEmptyState();
             }
-            return ExerciseListView(exercises: snapshot.data!);
+
+            // filter ชื่อ + กล้ามเนื้อ
+            final exercises = snapshot.data!
+                .where((e) {
+                  final matchName = e.name
+                      .toLowerCase()
+                      .startsWith(_searchQuery.trim().toLowerCase());
+
+                  final matchMuscle = _selectedMuscles.isEmpty ||
+                      e.muscles.any((m) => _selectedMuscles.contains(m));
+
+                  return matchName && matchMuscle;
+                })
+                .toList();
+
+            if (exercises.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No results',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              );
+            }
+
+            return ExerciseListView(exercises: exercises);
           },
         ),
       ),
@@ -188,9 +284,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () {
+                if (!mounted) return;
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (ctx) => const ProfileScreen(),
+                  ),
                 );
               },
               child: const CircleAvatar(
