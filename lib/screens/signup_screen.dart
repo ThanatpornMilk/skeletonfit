@@ -3,25 +3,27 @@ import '../widgets/radial_background.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_back_button.dart'; 
 
-class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _SignupScreenState extends State<SignupScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _newPasswordController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _obscureNew = true;
+  bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
-    _newPasswordController.dispose();
+    _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
@@ -49,7 +51,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       _buildLogo(green, darkGreen),
                       const SizedBox(height: 30),
                       const Text(
-                        "Reset Password",
+                        "Create Account",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 32,
@@ -58,12 +60,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        "Enter your email and new password",
+                        "Sign Up to get started",
                         style: TextStyle(
                           color: Color.fromRGBO(156, 163, 175, 1),
                           fontSize: 16,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 40),
                     ],
@@ -73,21 +74,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   Column(
                     children: [
                       CustomTextField(
+                        controller: _nameController,
+                        hintText: "Username",
+                        icon: Icons.person_outline,
+                      ),
+                      const SizedBox(height: 20),
+                      CustomTextField(
                         controller: _emailController,
-                        hintText: "Email",
+                        hintText: "Email address",
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 20),
                       CustomTextField(
-                        controller: _newPasswordController,
-                        hintText: "New Password",
+                        controller: _passwordController,
+                        hintText: "Password",
                         icon: Icons.lock_outline,
                         isPassword: true,
-                        obscureText: _obscureNew,
+                        obscureText: _obscurePassword,
                         onToggleVisibility: () {
                           setState(() {
-                            _obscureNew = !_obscureNew;
+                            _obscurePassword = !_obscurePassword;
                           });
                         },
                       ),
@@ -105,38 +112,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         },
                       ),
                       const SizedBox(height: 30),
-                      _buildResetButton(green, darkGreen),
+                      _buildSignupButton(green, darkGreen),
                     ],
                   ),
 
                   const SizedBox(height: 40),
 
                   // Footer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Remember your password? ",
-                        style: TextStyle(
-                          color: Color.fromRGBO(156, 163, 175, 1),
-                          fontSize: 16,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/login');
-                        },
-                        child: const Text(
-                          "Login",
-                          style: TextStyle(
-                            color: Color.fromRGBO(46, 146, 101, 1),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const _LoginText(),
                 ],
               ),
             ),
@@ -161,11 +144,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ],
       ),
-      child: const Icon(Icons.lock_reset, color: Colors.white, size: 40),
+      child: const Icon(Icons.person_add_alt_1,
+          color: Colors.white, size: 40),
     );
   }
 
-  Widget _buildResetButton(Color green, Color darkGreen) {
+  Widget _buildSignupButton(Color green, Color darkGreen) {
     return Container(
       width: double.infinity,
       height: 56,
@@ -182,18 +166,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
       child: ElevatedButton(
         onPressed: () {
+          final name = _nameController.text.trim();
           final email = _emailController.text.trim();
-          final newPassword = _newPasswordController.text.trim();
+          final password = _passwordController.text.trim();
           final confirm = _confirmPasswordController.text.trim();
 
-          if (newPassword != confirm) {
+          if (password != confirm) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Passwords do not match")),
             );
             return;
           }
 
-          debugPrint("Reset for $email with $newPassword");
+          debugPrint("Sign Up with $name / $email / $password");
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
@@ -203,7 +188,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
         child: const Text(
-          "Reset Password",
+          "Sign Up",
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -212,6 +197,37 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LoginText extends StatelessWidget {
+  const _LoginText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          "Already have an account? ",
+          style: TextStyle(
+            color: Color.fromRGBO(156, 163, 175, 1),
+            fontSize: 16,
+          ),
+        ),
+        GestureDetector(
+          onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+          child: const Text(
+            "Login",
+            style: TextStyle(
+              color: Color.fromRGBO(46, 146, 101, 1),
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

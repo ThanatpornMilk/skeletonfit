@@ -4,11 +4,14 @@ class SearchFilterBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onTapFilter;
   final String hint;
+  final ValueChanged<String>? onChanged; 
+
   const SearchFilterBar({
     super.key,
     required this.controller,
     required this.onTapFilter,
     this.hint = 'ค้นหา...',
+    this.onChanged,
   });
 
   @override
@@ -18,6 +21,7 @@ class SearchFilterBar extends StatelessWidget {
         Expanded(
           child: TextField(
             controller: controller,
+            onChanged: onChanged, // ส่ง callback ออกไป
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               filled: true,
