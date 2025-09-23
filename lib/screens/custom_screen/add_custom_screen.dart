@@ -1,298 +1,210 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../data/workout_sets.dart';
-import 'custom_screen.dart';
-import '../../widgets/button.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+// import '../../widgets/button.dart';
+// import '../../widgets/search_filter_bar.dart';
+// import '../../widgets/muscle_filter_dialog.dart';
+// import '../../widgets/exercise_grid.dart';
+// import '../../widgets/radial_background.dart'; 
+// import '../../data/workout_sets.dart';
+// import '../../services/api_service.dart';
+// import 'choose_lengths_screen.dart';
 
-class AddCustomScreen extends StatefulWidget {
-  const AddCustomScreen({super.key});
+// class AddCustomScreen extends StatefulWidget {
+//   const AddCustomScreen({super.key});
 
-  @override
-  State<AddCustomScreen> createState() => _AddCustomScreenState();
-}
+//   @override
+//   State<AddCustomScreen> createState() => _AddCustomScreenState();
+// }
 
-class _AddCustomScreenState extends State<AddCustomScreen> {
-  final _searchController = TextEditingController();
-  late final List<ExerciseInfo> _allExercises;
-  late List<ExerciseInfo> _filtered;
-  final _selected = <ExerciseInfo>[];
+// class _AddCustomScreenState extends State<AddCustomScreen> {
+//   final _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    final combined = workoutSets.expand((ws) => ws.exercises);
-    final seenNames = <String>{};
-    _allExercises = combined.where((ex) => seenNames.add(ex.name)).toList();
-    _filtered = List.from(_allExercises);
-    _searchController.addListener(_onSearch);
-  }
+//   List<ExerciseInfo> _allExercises = [];
+//   List<ExerciseInfo> _filtered = [];
+//   final List<ExerciseInfo> _selected = [];
 
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearch);
-    _searchController.dispose();
-    super.dispose();
-  }
+//   bool _isLoading = true;
+//   String? _error;
 
-  void _onSearch() {
-    final q = _searchController.text.toLowerCase();
-    setState(() {
-      _filtered = q.isEmpty
-          ? List.from(_allExercises)
-          : _allExercises
-              .where((ex) => ex.name.toLowerCase().startsWith(q))
-              .toList();
-    });
-  }
+//   Set<String> _selectedMuscles = {};
 
-  void _toggle(ExerciseInfo ex) {
-    setState(() {
-      if (_selected.contains(ex)) {
-        _selected.remove(ex);
-      } else {
-        _selected.add(ex);
-      }
-    });
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _fetchExercises();
+//     _searchController.addListener(_onSearch);
+//   }
 
-  void _onNext() {
-    // TODO: นำชุดท่าที่เลือกไปใช้งานต่อ
-  }
+//   @override
+//   void dispose() {
+//     _searchController.dispose();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    final bg = const Color(0xFF181717);
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: _buildAppBar(bg),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildSearchAndFilter(),
-            Expanded(
-              child: Stack(
-                children: [
-                  // จุดไล่สีที่ 1 (มุมล่างซ้าย)
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment.bottomLeft,
-                        radius: 1.2,
-                        colors: [
-                          Color.fromRGBO(46, 146, 101, 0.05),
-                          Color(0xFF181717),
-                          Color(0xFF181717),
-                        ],
-                        stops: [0.0, 0.3, 1.0],
-                      ),
-                    ),
-                  ),
-                  // จุดไล่สีที่ 2 (มุมขวาบน)
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment.topRight,
-                        radius: 1.0,
-                        colors: [
-                          Color.fromRGBO(46, 146, 101, 0.08),
-                          Colors.transparent,
-                          Colors.transparent,
-                        ],
-                        stops: [0.0, 0.4, 1.0],
-                      ),
-                    ),
-                  ),
-                  _buildExerciseGrid(bg),
-                ],
-              ),
-            ),
-            _buildNextButton(),
-          ],
-        ),
-      ),
-    );
-  }
+//   Future<void> _fetchExercises() async {
+//     try {
+//       final sets = await ApiService.fetchWorkoutSets();
+//       final combined = sets.expand((ws) => ws.exercises).toList();
+//       final seen = <String>{};
+//       _allExercises = combined.where((ex) => seen.add(ex.name)).toList();
+//       _filtered = List.from(_allExercises);
+//     } catch (e) {
+//       _error = e.toString();
+//     } finally {
+//       if (mounted) setState(() => _isLoading = false);
+//     }
+//   }
 
-  AppBar _buildAppBar(Color bg) {
-    return AppBar(
-      backgroundColor: bg,
-      elevation: 0,
-      shadowColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      systemOverlayStyle: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF181717),
-        statusBarIconBrightness: Brightness.light,
-      ),
-      leadingWidth: 64,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF).withAlpha(15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFFFFFFF).withAlpha(25),
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new,
-                color: Colors.white, size: 20),
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const CustomScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ),
-      ),
-      centerTitle: true,
-      title: const Text(
-        'Choose Your Exercise',
-        style: TextStyle(color: Colors.white),
-      ),
-    );
-  }
+//   void _onSearch() {
+//     final q = _searchController.text.trim().toLowerCase();
+//     setState(() {
+//       final base = _selectedMuscles.isEmpty
+//           ? _allExercises
+//           : _allExercises
+//               .where((ex) => ex.muscles.any(_selectedMuscles.contains))
+//               .toList();
 
-  Widget _buildSearchAndFilter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white12,
-                hintText: 'ค้นหาท่าออกกำลังกาย',
-                hintStyle: const TextStyle(color: Colors.white54),
-                prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: () {
-              // TODO: เปิด dialog สำหรับ filter
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.filter_list, color: Colors.white),
-                  SizedBox(width: 4),
-                  Text('Filter Area', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+//       _filtered = q.isEmpty
+//           ? List.from(base)
+//           : base.where((ex) => ex.name.toLowerCase().contains(q)).toList();
+//     });
+//   }
 
-  Widget _buildExerciseGrid(Color bgColor) {
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _filtered.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
-      itemBuilder: (ctx, i) {
-        final ex = _filtered[i];
-        final sel = _selected.contains(ex);
-        final indexInSelected = _selected.indexOf(ex) + 1;
+//   void _toggle(ExerciseInfo ex) {
+//     setState(() {
+//       final idx = _selected.indexWhere((e) => e.name == ex.name);
+//       if (idx >= 0) {
+//         _selected.removeAt(idx);
+//       } else {
+//         _selected.add(ex);
+//       }
+//     });
+//   }
 
-        return GestureDetector(
-          onTap: () => _toggle(ex),
-          child: Column(
-            children: [
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: sel ? Colors.greenAccent : Colors.transparent,
-                        width: 3,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 36,
-                      backgroundColor: Colors.white12,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset(
-                          ex.image,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.fitness_center,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (sel)
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.greenAccent,
-                      ),
-                      child: Text(
-                        '$indexInSelected',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                ex.name,
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: sel ? Colors.greenAccent : Colors.white70,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+//   Future<void> _onNext() async {
+//     if (_selected.isEmpty) return;
 
-  Widget _buildNextButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Button(
-        onPressed: _onNext,
-        isEnabled: _selected.isNotEmpty,
-        buttonText: 'Next',
-      ),
-    );
-  }
-}
+//     final set = await Navigator.push<WorkoutSet>(
+//       context,
+//       MaterialPageRoute(
+//         builder: (_) => ChooseLengthsScreen(selected: List.from(_selected)),
+//       ),
+//     );
+
+//     if (!mounted) return;
+//     if (set != null) {
+//       // ส่ง WorkoutSet ตรง ๆ กลับไป CustomScreen
+//       Navigator.pop(context, set);
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     const bg = Color(0xFF181717);
+
+//     if (_isLoading) {
+//       return const Scaffold(
+//         backgroundColor: bg,
+//         body: Center(child: CircularProgressIndicator()),
+//       );
+//     }
+
+//     if (_error != null) {
+//       return const Scaffold(
+//         backgroundColor: bg,
+//         body: Center(
+//           child: Text(
+//             'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+//             style: TextStyle(color: Colors.white),
+//           ),
+//         ),
+//       );
+//     }
+
+//     return Scaffold(
+//       backgroundColor: bg,
+//       appBar: _buildAppBar(),
+//       body: SafeArea(
+//         child: RadialBackground( 
+//           bg: bg,
+//           child: Column(
+//             children: [
+//               Padding(
+//                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+//                 child: SearchFilterBar(
+//                   controller: _searchController,
+//                   hint: 'ค้นหาท่าออกกำลังกาย',
+//                   onTapFilter: _showFilterDialog,
+//                 ),
+//               ),
+//               Expanded(
+//                 child: ExerciseGrid(
+//                   items: _filtered,
+//                   selected: _selected,
+//                   onToggle: _toggle,
+//                 ),
+//               ),
+//               Padding(
+//                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+//                 child: Button(
+//                   onPressed: _onNext,
+//                   isEnabled: _selected.isNotEmpty,
+//                   buttonText: 'ถัดไป',
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+
+//   AppBar _buildAppBar() {
+//     const bg = Color(0xFF181717);
+//     return AppBar(
+//       backgroundColor: bg,
+//       elevation: 0,
+//       shadowColor: Colors.transparent,
+//       surfaceTintColor: Colors.transparent,
+//       systemOverlayStyle: const SystemUiOverlayStyle(
+//         statusBarColor: bg,
+//         statusBarIconBrightness: Brightness.light,
+//       ),
+//       leadingWidth: 64,
+//       leading: Padding(
+//         padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8),
+//         child: Container(
+//           width: 44,
+//           height: 44,
+//           decoration: BoxDecoration(
+//             color: const Color(0xFFFFFFFF).withAlpha(15),
+//             borderRadius: BorderRadius.circular(12),
+//             border: Border.all(
+//               color: const Color(0xFFFFFFFF).withAlpha(25),
+//               width: 1,
+//             ),
+//           ),
+//           child: IconButton(
+//             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+//             onPressed: () => Navigator.pop(context),
+//           ),
+//         ),
+//       ),
+//       centerTitle: true,
+//       title: const Text('Choose Your Exercise', style: TextStyle(color: Colors.white)),
+//     );
+//   }
+
+//   Future<void> _showFilterDialog() async {
+//     final allMuscles = _allExercises.expand((e) => e.muscles).toSet().toList()..sort();
+//     final res = await MuscleFilterDialog.show(
+//       context,
+//       allMuscles: allMuscles,
+//       initialSelected: _selectedMuscles,
+//     );
+//     if (res != null) {
+//       setState(() => _selectedMuscles = res);
+//       _onSearch();
+//     }
+//   }
+// }

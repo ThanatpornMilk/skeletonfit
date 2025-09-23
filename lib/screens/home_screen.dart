@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/navbar.dart';
-import '../data/workout_sets.dart';
-import '../widgets/workout_card.dart';
+import '../widgets/exercise_list_view.dart';
 import '../screens/profile_screen.dart';
+import '../services/api_service.dart';
+import '../data/exercises.dart';
+import '../widgets/search_filter_bar.dart';
+import '../widgets/muscle_filter_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,8 +15,49 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int pageIndex = 0;
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+  Set<String> _selectedMuscles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
+    );
+
+    _fadeController.forward();
+    _slideController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,17 +74,124 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  _buildWorkoutCards(),
-                  _buildPageIndicator(),
-                  const Expanded(child: SizedBox()),
+
+                  // Search + Filter
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                    child: SearchFilterBar(
+                      controller: _searchController,
+                      onTapFilter: () async {
+                        final allExercises =
+                            await ApiService.fetchExercises();
+                        if (!mounted) return;
+
+                        final allMuscles = allExercises
+                            .expand((e) => e.muscles)
+                            .toSet()
+                            .toList();
+
+                        if (!context.mounted) return;
+                        final result = await MuscleFilterDialog.show(
+                          context,
+                          allMuscles: allMuscles,
+                          initialSelected: _selectedMuscles,
+                        );
+
+                        if (!mounted) return;
+                        if (result != null) {
+                          setState(() {
+                            _selectedMuscles = result;
+                          });
+                        }
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      hint: "Search exercises...",
+                    ),
+                  ),
+
+                  // Filter Chips (แสดงเฉพาะถ้ามีเลือก muscle)
+                  if (_selectedMuscles.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _selectedMuscles.map((m) {
+                          return Chip(
+                            label: Text(m),
+                            labelStyle: const TextStyle(color: Colors.white),
+                            backgroundColor: const Color(0xFF2E9265),
+                            deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white),
+                            onDeleted: () {
+                              setState(() {
+                                _selectedMuscles.remove(m);
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                  // Exercise list
+                  Expanded(child: _buildExerciseList()),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: const NavBar(
-        currentIndex: 0, 
+      bottomNavigationBar: const NavBar(currentIndex: 0),
+    );
+  }
+
+  Widget _buildExerciseList() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: FutureBuilder<List<ExerciseInfo>>(
+          future: ApiService.fetchExercises(),
+          builder: (ctx, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoading();
+            }
+            if (snapshot.hasError) {
+              return _buildError(snapshot.error.toString());
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            // filter ชื่อ + กล้ามเนื้อ
+            final exercises = snapshot.data!
+                .where((e) {
+                  final matchName = e.name
+                      .toLowerCase()
+                      .startsWith(_searchQuery.trim().toLowerCase());
+
+                  final matchMuscle = _selectedMuscles.isEmpty ||
+                      e.muscles.any((m) => _selectedMuscles.contains(m));
+
+                  return matchName && matchMuscle;
+                })
+                .toList();
+
+            if (exercises.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No results',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              );
+            }
+
+            return ExerciseListView(exercises: exercises);
+          },
+        ),
       ),
     );
   }
@@ -49,12 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF181717),
-            Color(0xFF181717),
-            Color(0xFF181717),
-          ],
-          stops: [0.0, 0.5, 1.0],
+          colors: [Color(0xFF181717), Color(0xFF181717)],
         ),
       );
 
@@ -138,10 +284,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () {
+                if (!mounted) return;
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
+                    builder: (ctx) => const ProfileScreen(),
                   ),
                 );
               },
@@ -161,65 +309,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWorkoutCards() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: SizedBox(
-        height: 280,
-        child: PageView.builder(
-          itemCount: workoutSets.length,
-          controller: PageController(
-            viewportFraction: 0.9,
-            initialPage: 0,
-          ),
-          onPageChanged: (idx) => setState(() => pageIndex = idx),
-          itemBuilder: (context, idx) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: WorkoutCard(workoutSet: workoutSets[idx]),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildLoading() => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF00D4AA)),
+      );
 
-  Widget _buildPageIndicator() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          workoutSets.length,
-          (idx) {
-            final isActive = idx == pageIndex;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: isActive ? 20 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                gradient: isActive
-                    ? const LinearGradient(
-                        colors: [Colors.white, Color(0xCCFFFFFF)],
-                      )
-                    : null,
-                color: isActive
-                    ? null
-                    : const Color.fromRGBO(255, 255, 255, 0.3),
-                borderRadius: BorderRadius.circular(3),
-                boxShadow: isActive
-                    ? [
-                        const BoxShadow(
-                          color: Color.fromRGBO(255, 255, 255, 0.4),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-            );
-          },
+  Widget _buildError(String message) => Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.redAccent),
+          ),
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _buildEmptyState() => const Center(
+        child: Text(
+          'No exercises available.',
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
 }

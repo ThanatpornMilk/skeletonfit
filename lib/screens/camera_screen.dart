@@ -7,7 +7,9 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:image/image.dart' as img;
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final String exercise;   // ✅ รับค่า exercise จากข้างนอก
+
+  const CameraScreen({super.key, required this.exercise});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -18,19 +20,38 @@ class _CameraScreenState extends State<CameraScreen> {
   late WebSocketChannel _channel;
   bool _isStreaming = false;
 
-  String _pose = "N/A";
+  // ---------------- State ----------------
+  String? _selectedPose;
+  String _displayPose = "N/A";
   double _confidence = 0.0;
   int _count = 0;
-  int _reps = 0;
+  Map<String, int> _reps = {};
+  Map<String, Map<String, double>> _holds = {};
 
-  final String serverIp = "10.0.2.2"; // เปลี่ยนเป็น IP server จริงถ้าไม่ใช้ emulator
+  // ---------------- Config ----------------
+  final String serverIp = "10.0.2.2"; // Emulator
   final int serverPort = 8000;
-
   int _lastSentTime = 0;
+
+  final List<String> _poses = [
+    "squat",
+    "pushup",
+    "plank",
+    "situp",
+    "forward_lunge",
+    "dead_bug",
+    "side_plank",
+    "russian_twist",
+    "lying_leg_raises"
+  ];
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ ตั้งค่า pose ที่เลือกจาก exercise_detail_screen
+    _selectedPose = widget.exercise;
+
     _initWebSocket();
     _initCamera();
   }
@@ -43,6 +64,7 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
+  // ---------------- WebSocket ----------------
   void _initWebSocket() {
     final uri = Uri.parse('ws://$serverIp:$serverPort/ws/pose');
     print("Connecting to WebSocket: $uri");
@@ -50,24 +72,52 @@ class _CameraScreenState extends State<CameraScreen> {
     _channel = WebSocketChannel.connect(uri);
 
     _channel.stream.listen((message) {
-      print("Received from WS: $message");
       final data = jsonDecode(message);
+      if (!mounted) return;
+
       setState(() {
-        _pose = data["pose"] ?? "N/A";
+        // ตรึงชื่อท่าที่เลือก
+        _displayPose = _selectedPose ?? "N/A";
+
+        // Update Confidence/Count/Reps/Holds
         _confidence = (data["confidence"] ?? 0).toDouble();
-        _count = data["count"] ?? 0;
-        _reps = data["reps"] ?? 0;
+        _count = (data["reps"]?[_selectedPose] ?? 0).toInt();
+        _reps = (data["reps"] as Map?)?.map(
+              (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+            ) ??
+            {};
+        final holdsData = data["holds"] as Map?;
+        if (holdsData != null) {
+          _holds = holdsData.map((k, v) {
+            final m = v as Map;
+            return MapEntry(
+              k.toString(),
+              {
+                "current": (m["current_hold"] ?? 0).toDouble(),
+                "best": (m["best_hold"] ?? 0).toDouble(),
+              },
+            );
+          });
+        }
       });
     }, onError: (error) {
       print("WebSocket error: $error");
     }, onDone: () {
       print("WebSocket closed");
     });
+
+    // ✅ ส่งค่า exercise ที่เลือกไป backend เลยหลังจาก connect
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _channel.sink.add(jsonEncode({"select_pose": widget.exercise}));
+    });
   }
 
+  // ---------------- Camera ----------------
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
-    final camera = cameras.firstWhere((cam) => cam.lensDirection == CameraLensDirection.front);
+    final camera = cameras.firstWhere(
+      (cam) => cam.lensDirection == CameraLensDirection.front,
+    );
 
     _cameraController = CameraController(
       camera,
@@ -77,7 +127,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
     await _cameraController.initialize();
     setState(() {});
-
     _startImageStream();
   }
 
@@ -87,19 +136,14 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!_isStreaming) return;
 
       final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - _lastSentTime < 200) return; // ส่งทุก 200ms (5fps)
+      if (now - _lastSentTime < 200) return;
       _lastSentTime = now;
 
       try {
-        if (_channel.closeCode != null) {
-          print("WebSocket is closed, cannot send image");
-          return;
-        }
+        if (_channel.closeCode != null) return;
 
         final jpgBytes = await _convertCameraImageToJpg(image);
         final base64Image = base64Encode(jpgBytes);
-
-        print("Sending image of size: ${base64Image.length}");
         _channel.sink.add(base64Image);
       } catch (e) {
         print("Image conversion/send error: $e");
@@ -139,37 +183,147 @@ class _CameraScreenState extends State<CameraScreen> {
     return Uint8List.fromList(img.encodeJpg(imgImage));
   }
 
+  // ---------------- Build ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Real-Time Pose Detection")),
       body: _cameraController.value.isInitialized
           ? Stack(
               children: [
                 CameraPreview(_cameraController),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Pose: $_pose", style: const TextStyle(color: Colors.white)),
-                        Text("Confidence: ${(_confidence * 100).toStringAsFixed(2)}%", style: const TextStyle(color: Colors.white)),
-                        Text("Count: $_count", style: const TextStyle(color: Colors.white)),
-                        Text("Reps: $_reps", style: const TextStyle(color: Colors.white)),
-                      ],
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.black54, Colors.transparent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
                     ),
                   ),
+                ),
+                Positioned(
+                  top: 50,
+                  left: 16,
+                  right: 16,
+                  child: _buildPoseLabel(),
+                ),
+                Positioned(
+                  bottom: 30,
+                  left: 16,
+                  right: 16,
+                  child: _buildStatsCard(),
                 ),
               ],
             )
           : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  // ---------------- Locked Pose Label ----------------
+  Widget _buildPoseLabel() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.fitness_center, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            widget.exercise,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- Stats Card ----------------
+  Widget _buildStatsCard() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Confidence
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              "Confidence: ${(_confidence * 100).toStringAsFixed(1)}%",
+              key: ValueKey(_confidence.toStringAsFixed(1)),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 4),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: _confidence),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => LinearProgressIndicator(
+              value: value,
+              backgroundColor: Colors.white24,
+              color: Colors.greenAccent,
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Reps
+          Row(
+            children: [
+              const Icon(Icons.repeat, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                "Reps: ${_reps[_selectedPose] ?? 0}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Hold Times
+          if (_holds[_selectedPose] != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Hold Times:",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Current: ${_holds[_selectedPose]!["current"]!.toStringAsFixed(1)}s | Best: ${_holds[_selectedPose]!["best"]!.toStringAsFixed(1)}s",
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

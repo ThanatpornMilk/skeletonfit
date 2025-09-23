@@ -1,32 +1,26 @@
 import 'package:flutter/material.dart';
-import '../data/workout_sets.dart';
-import 'muscle_card.dart';
+import '../data/exercises.dart';
+import '../screens/exercise_detail_screen.dart';
 
 class ExerciseListView extends StatelessWidget {
   final List<ExerciseInfo> exercises;
-  final List<String> muscles;
 
   const ExerciseListView({
     super.key,
     required this.exercises,
-    required this.muscles,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: exercises.length + 1,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32), 
+      itemCount: exercises.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        if (index == 0) return MuscleCard(muscles: muscles);
-        final ex = exercises[index - 1];
+        final ex = exercises[index];
         return AnimatedExerciseCard(
-          imagePath: ex.image,
-          title: ex.name,
-          sets: ex.sets,
-          reps: ex.reps,
-          delay: Duration(milliseconds: 100 * (index - 1)),
+          exercise: ex,
+          delay: Duration(milliseconds: 100 * index),
         );
       },
     );
@@ -34,15 +28,12 @@ class ExerciseListView extends StatelessWidget {
 }
 
 class AnimatedExerciseCard extends StatefulWidget {
-  final String imagePath, title, sets, reps;
+  final ExerciseInfo exercise;
   final Duration delay;
 
   const AnimatedExerciseCard({
     super.key,
-    required this.imagePath,
-    required this.title,
-    required this.sets,
-    required this.reps,
+    required this.exercise,
     required this.delay,
   });
 
@@ -50,18 +41,29 @@ class AnimatedExerciseCard extends StatefulWidget {
   State<AnimatedExerciseCard> createState() => _AnimatedExerciseCardState();
 }
 
-class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with TickerProviderStateMixin {
-  late final AnimationController _slideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-  late final AnimationController _hoverCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _slideCtrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final AnimationController _hoverCtrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
 
-  late final Animation<Offset> _slideAnim = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
-    .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
-  late final Animation<double> _fadeAnim = Tween<double>(begin: 0, end: 1)
-    .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeInOut));
-  late final Animation<double> _scaleAnim = Tween<double>(begin: 0.8, end: 1.0)
-    .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutBack));
-  late final Animation<double> _hoverAnim = Tween<double>(begin: 1.0, end: 1.02)
-    .animate(CurvedAnimation(parent: _hoverCtrl, curve: Curves.easeInOut));
+  late final Animation<Offset> _slideAnim = Tween<Offset>(
+    begin: const Offset(0, 0.5),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+
+  late final Animation<double> _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+    CurvedAnimation(parent: _slideCtrl, curve: Curves.easeInOut),
+  );
+
+  late final Animation<double> _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+    CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutBack),
+  );
+
+  late final Animation<double> _hoverAnim = Tween<double>(begin: 1.0, end: 1.02).animate(
+    CurvedAnimation(parent: _hoverCtrl, curve: Curves.easeInOut),
+  );
 
   bool _isHovered = false;
 
@@ -81,12 +83,12 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
   }
 
   String get setsRepsText {
-    if (widget.sets.isNotEmpty && widget.reps.isNotEmpty) {
-      return '${widget.sets} | เซตละ ${widget.reps}';
-    } else if (widget.sets.isNotEmpty) {
-      return widget.sets;
-    } else if (widget.reps.isNotEmpty) {
-      return widget.reps;
+    if (widget.exercise.sets.isNotEmpty && widget.exercise.reps.isNotEmpty) {
+      return '${widget.exercise.sets} | เซตละ ${widget.exercise.reps}';
+    } else if (widget.exercise.sets.isNotEmpty) {
+      return widget.exercise.sets;
+    } else if (widget.exercise.reps.isNotEmpty) {
+      return widget.exercise.reps;
     }
     return '';
   }
@@ -99,23 +101,23 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
         opacity: _fadeAnim,
         child: ScaleTransition(
           scale: _scaleAnim,
-          child: _buildAnimatedCard(),
+          child: _buildAnimatedCard(context),
         ),
       ),
     );
   }
 
-  Widget _buildAnimatedCard() {
+  Widget _buildAnimatedCard(BuildContext context) {
     return AnimatedBuilder(
       animation: _hoverAnim,
       builder: (context, child) => Transform.scale(
         scale: _hoverAnim.value,
-        child: _buildCardContainer(),
+        child: _buildCardContainer(context),
       ),
     );
   }
 
-  Widget _buildCardContainer() {
+  Widget _buildCardContainer(BuildContext context) {
     return Container(
       decoration: _cardDecoration(),
       child: Material(
@@ -123,7 +125,14 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ExerciseDetailScreen(exercise: widget.exercise),
+              ),
+            );
+          },
           onHover: _handleHover,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -152,12 +161,16 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
         ],
       ),
       border: Border.all(
-        color: _isHovered ? const Color.fromRGBO(78, 205, 196, 0.3) : const Color.fromRGBO(255, 255, 255, 0.08),
+        color: _isHovered
+            ? const Color.fromRGBO(78, 205, 196, 0.3)
+            : const Color.fromRGBO(255, 255, 255, 0.08),
         width: 1,
       ),
       boxShadow: [
         BoxShadow(
-          color: _isHovered ? const Color.fromRGBO(78, 205, 196, 0.2) : const Color.fromRGBO(0, 0, 0, 0.15),
+          color: _isHovered
+              ? const Color.fromRGBO(78, 205, 196, 0.2)
+              : const Color.fromRGBO(0, 0, 0, 0.15),
           blurRadius: _isHovered ? 16 : 8,
           offset: const Offset(0, 4),
         ),
@@ -197,7 +210,7 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
         ),
         clipBehavior: Clip.hardEdge,
         child: Image.asset(
-          widget.imagePath,
+          widget.exercise.image,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Container(
             color: Colors.grey[300],
@@ -217,7 +230,7 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard> with Ticker
             colors: [Colors.white, Color(0xFFE0E0E0)],
           ).createShader(bounds),
           child: Text(
-            widget.title,
+            widget.exercise.name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,

@@ -4,14 +4,14 @@ class Button extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isEnabled;
   final String buttonText;
-  final IconData? icon; // ← เพิ่ม icon แบบ optional
+  final IconData? icon; 
 
   const Button({
     super.key,
     required this.onPressed,
     required this.isEnabled,
     required this.buttonText,
-    this.icon, // ← ตั้งค่า default = null
+    this.icon, 
   });
 
   @override

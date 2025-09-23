@@ -5,11 +5,8 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushReplacementNamed(context, '/home'),
-      child: Scaffold(
-        body: _buildBackground(context),
-      ),
+    return Scaffold(
+      body: _buildBackground(context),
     );
   }
 
@@ -28,18 +25,14 @@ class WelcomeScreen extends StatelessWidget {
           stops: [0.5, 1.0],
         ),
       ),
-      child: Align(
+      child: Stack(
         alignment: Alignment.topCenter,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            _buildTopBar(context),
-            _buildCircle(),
-            _buildLogo(),
-            _buildText(),
-          ],
-        ),
+        children: [
+          _buildTopBar(context),
+          _buildCircle(),
+          _buildLogo(),
+          _buildMainContent(context),
+        ],
       ),
     );
   }
@@ -77,29 +70,104 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildText() {
-    return const Positioned(
-      top: 550,
-      child: Column(
-        children: [
-          Text(
-            'WELCOME',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 2,
+  Widget _buildMainContent(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 100),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Welcome',
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+                letterSpacing: -1.2,
+              ),
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'press any to start',
-            style: TextStyle(
-              fontSize: 24,
-              color: Colors.white70,
+            const SizedBox(height: 12),
+
+            Text(
+              'Start your exercise today',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Color.fromRGBO(0, 0, 0, 0.7), 
+                letterSpacing: 0.3,
+              ),
             ),
+            const SizedBox(height: 40),
+
+            _buildAnimatedButton(
+              context: context,
+              text: "Login",
+              isPrimary: true,
+              onPressed: () {
+                Navigator.pushNamed(context, '/login');
+              },
+            ),
+            const SizedBox(height: 20),
+
+            _buildAnimatedButton(
+              context: context,
+              text: "Sign Up",
+              isPrimary: false,
+              onPressed: () {
+                Navigator.pushNamed(context, '/signup');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedButton({
+    required BuildContext context,
+    required String text,
+    required bool isPrimary,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 300,
+      height: 56,
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: isPrimary
+                ? const Color.fromRGBO(0, 0, 0, 0.2)   
+                : const Color.fromRGBO(158, 158, 158, 0.2), 
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isPrimary ? Colors.black : Colors.white,
+          foregroundColor: isPrimary ? Colors.white : Colors.black,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isPrimary
+                ? BorderSide.none
+                : const BorderSide(color: Colors.black, width: 1),
+          ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
     );
   }
