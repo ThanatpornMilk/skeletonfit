@@ -7,7 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:image/image.dart' as img;
 
 class CameraScreen extends StatefulWidget {
-  final String exercise;   // ✅ รับค่า exercise จากข้างนอก
+  final String exercise;   // รับค่า exercise จากข้างนอก
 
   const CameraScreen({super.key, required this.exercise});
 
@@ -16,15 +16,13 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  late CameraController _cameraController;
+  CameraController? _cameraController; // nullable
   late WebSocketChannel _channel;
   bool _isStreaming = false;
 
   // ---------------- State ----------------
   String? _selectedPose;
-  String _displayPose = "N/A";
   double _confidence = 0.0;
-  int _count = 0;
   Map<String, int> _reps = {};
   Map<String, Map<String, double>> _holds = {};
 
@@ -33,23 +31,11 @@ class _CameraScreenState extends State<CameraScreen> {
   final int serverPort = 8000;
   int _lastSentTime = 0;
 
-  final List<String> _poses = [
-    "squat",
-    "pushup",
-    "plank",
-    "situp",
-    "forward_lunge",
-    "dead_bug",
-    "side_plank",
-    "russian_twist",
-    "lying_leg_raises"
-  ];
-
   @override
   void initState() {
     super.initState();
 
-    // ✅ ตั้งค่า pose ที่เลือกจาก exercise_detail_screen
+    // ตั้งค่า pose ที่เลือกจาก exercise_detail_screen
     _selectedPose = widget.exercise;
 
     _initWebSocket();
@@ -59,7 +45,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     _isStreaming = false;
-    _cameraController.dispose();
+    _cameraController?.dispose(); // เช็คก่อน dispose
     _channel.sink.close();
     super.dispose();
   }
@@ -67,7 +53,7 @@ class _CameraScreenState extends State<CameraScreen> {
   // ---------------- WebSocket ----------------
   void _initWebSocket() {
     final uri = Uri.parse('ws://$serverIp:$serverPort/ws/pose');
-    print("Connecting to WebSocket: $uri");
+    debugPrint("Connecting to WebSocket: $uri");
 
     _channel = WebSocketChannel.connect(uri);
 
@@ -76,12 +62,8 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!mounted) return;
 
       setState(() {
-        // ตรึงชื่อท่าที่เลือก
-        _displayPose = _selectedPose ?? "N/A";
-
-        // Update Confidence/Count/Reps/Holds
+        // Update Confidence/Reps/Holds
         _confidence = (data["confidence"] ?? 0).toDouble();
-        _count = (data["reps"]?[_selectedPose] ?? 0).toInt();
         _reps = (data["reps"] as Map?)?.map(
               (k, v) => MapEntry(k.toString(), (v as num).toInt()),
             ) ??
@@ -101,12 +83,12 @@ class _CameraScreenState extends State<CameraScreen> {
         }
       });
     }, onError: (error) {
-      print("WebSocket error: $error");
+      debugPrint("WebSocket error: $error");
     }, onDone: () {
-      print("WebSocket closed");
+      debugPrint("WebSocket closed");
     });
 
-    // ✅ ส่งค่า exercise ที่เลือกไป backend เลยหลังจาก connect
+    // ส่งค่า exercise ที่เลือกไป backend เลยหลังจาก connect
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _channel.sink.add(jsonEncode({"select_pose": widget.exercise}));
     });
@@ -125,14 +107,15 @@ class _CameraScreenState extends State<CameraScreen> {
       enableAudio: false,
     );
 
-    await _cameraController.initialize();
+    await _cameraController!.initialize();
+    if (!mounted) return;
     setState(() {});
     _startImageStream();
   }
 
   void _startImageStream() {
     _isStreaming = true;
-    _cameraController.startImageStream((CameraImage image) async {
+    _cameraController?.startImageStream((CameraImage image) async {
       if (!_isStreaming) return;
 
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -146,7 +129,7 @@ class _CameraScreenState extends State<CameraScreen> {
         final base64Image = base64Encode(jpgBytes);
         _channel.sink.add(base64Image);
       } catch (e) {
-        print("Image conversion/send error: $e");
+        debugPrint("Image conversion/send error: $e");
       }
     });
   }
@@ -187,10 +170,10 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _cameraController.value.isInitialized
+      body: _cameraController != null && _cameraController!.value.isInitialized
           ? Stack(
               children: [
-                CameraPreview(_cameraController),
+                CameraPreview(_cameraController!), 
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -223,7 +206,7 @@ class _CameraScreenState extends State<CameraScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black54,
+        color: Colors.black.withValues(alpha: 0.54),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -250,12 +233,12 @@ class _CameraScreenState extends State<CameraScreen> {
       curve: Curves.easeInOut,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white24, width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.24), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -280,7 +263,7 @@ class _CameraScreenState extends State<CameraScreen> {
             curve: Curves.easeOutCubic,
             builder: (context, value, _) => LinearProgressIndicator(
               value: value,
-              backgroundColor: Colors.white24,
+              backgroundColor: Colors.white.withValues(alpha: 0.24),
               color: Colors.greenAccent,
               minHeight: 8,
             ),
