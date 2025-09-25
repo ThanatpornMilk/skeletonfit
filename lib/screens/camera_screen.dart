@@ -7,7 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:image/image.dart' as img;
 
 class CameraScreen extends StatefulWidget {
-  final String exercise;   // รับค่า exercise จากข้างนอก
+  final String exercise;
 
   const CameraScreen({super.key, required this.exercise});
 
@@ -16,7 +16,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  CameraController? _cameraController; // nullable
+  CameraController? _cameraController;
   late WebSocketChannel _channel;
   bool _isStreaming = false;
 
@@ -34,10 +34,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-
-    // ตั้งค่า pose ที่เลือกจาก exercise_detail_screen
     _selectedPose = widget.exercise;
-
     _initWebSocket();
     _initCamera();
   }
@@ -45,7 +42,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     _isStreaming = false;
-    _cameraController?.dispose(); // เช็คก่อน dispose
+    _cameraController?.dispose();
     _channel.sink.close();
     super.dispose();
   }
@@ -53,8 +50,6 @@ class _CameraScreenState extends State<CameraScreen> {
   // ---------------- WebSocket ----------------
   void _initWebSocket() {
     final uri = Uri.parse('ws://$serverIp:$serverPort/ws/pose');
-    debugPrint("Connecting to WebSocket: $uri");
-
     _channel = WebSocketChannel.connect(uri);
 
     _channel.stream.listen((message) {
@@ -62,7 +57,6 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!mounted) return;
 
       setState(() {
-        // Update Confidence/Reps/Holds
         _confidence = (data["confidence"] ?? 0).toDouble();
         _reps = (data["reps"] as Map?)?.map(
               (k, v) => MapEntry(k.toString(), (v as num).toInt()),
@@ -82,13 +76,9 @@ class _CameraScreenState extends State<CameraScreen> {
           });
         }
       });
-    }, onError: (error) {
-      debugPrint("WebSocket error: $error");
-    }, onDone: () {
-      debugPrint("WebSocket closed");
     });
 
-    // ส่งค่า exercise ที่เลือกไป backend เลยหลังจาก connect
+    // ส่งค่า exercise ที่เลือกไป backend
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _channel.sink.add(jsonEncode({"select_pose": widget.exercise}));
     });
@@ -96,21 +86,26 @@ class _CameraScreenState extends State<CameraScreen> {
 
   // ---------------- Camera ----------------
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
-    final camera = cameras.firstWhere(
-      (cam) => cam.lensDirection == CameraLensDirection.front,
-    );
+    try {
+      final cameras = await availableCameras();
+      final camera = cameras.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
 
-    _cameraController = CameraController(
-      camera,
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
+      _cameraController = CameraController(
+        camera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
 
-    await _cameraController!.initialize();
-    if (!mounted) return;
-    setState(() {});
-    _startImageStream();
+      await _cameraController!.initialize();
+      if (!mounted) return;
+      setState(() {});
+      _startImageStream();
+    } catch (e) {
+      debugPrint("Camera init error: $e");
+    }
   }
 
   void _startImageStream() {
@@ -169,31 +164,55 @@ class _CameraScreenState extends State<CameraScreen> {
   // ---------------- Build ----------------
   @override
   Widget build(BuildContext context) {
+    final bool isTimeBased = widget.exercise.toLowerCase().contains("plank");
+
     return Scaffold(
-      body: _cameraController != null && _cameraController!.value.isInitialized
-          ? Stack(
+      backgroundColor: const Color(0xFF181717),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF181717),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          widget.exercise,
+          style: const TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+      ),
+      body: (_cameraController != null &&
+              _cameraController!.value.isInitialized)
+          ? Column(
               children: [
-                CameraPreview(_cameraController!), 
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.black54, Colors.transparent],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
+                // กล้องเต็มพอดี ต่อกับ Header
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _cameraController!.value.previewSize!.height,
+                            height:
+                                _cameraController!.value.previewSize!.width,
+                            child: CameraPreview(_cameraController!),
+                          ),
+                        ),
+                      ),
+                      _buildOverlay(),
+                    ],
                   ),
                 ),
-                Positioned(
-                  top: 50,
-                  left: 16,
-                  right: 16,
-                  child: _buildPoseLabel(),
-                ),
-                Positioned(
-                  bottom: 30,
-                  left: 16,
-                  right: 16,
-                  child: _buildStatsCard(),
+
+                // StatsCard ด้านล่าง
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF181717),
+                    border: Border(
+                      top: BorderSide(color: Colors.white24, width: 1),
+                    ),
+                  ),
+                  child: _buildStatsContent(isTimeBased),
                 ),
               ],
             )
@@ -201,112 +220,93 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  // ---------------- Locked Pose Label ----------------
-  Widget _buildPoseLabel() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.54),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.fitness_center, color: Colors.white),
-          const SizedBox(width: 8),
-          Text(
-            widget.exercise,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+  // ---------------- Overlay ----------------
+  Widget _buildOverlay() {
+    return Positioned.fill(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black54,
+              Colors.transparent,
+              Colors.black38,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0, 0.4, 1],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // ---------------- Stats Card ----------------
-  Widget _buildStatsCard() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.24), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+  // ---------------- Stats Content ----------------
+  Widget _buildStatsContent(bool isTimeBased) {
+    final String poseKey = _selectedPose ?? widget.exercise;
+    final int reps = _reps[poseKey] ?? 0;
+    final double currentHold = _holds[poseKey]?["current"] ?? 0.0;
+    final double bestHold = _holds[poseKey]?["best"] ?? 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatRow(
+          Icons.trending_up,
+          "Confidence",
+          "${(_confidence * 100).toStringAsFixed(1)}%",
+        ),
+        const SizedBox(height: 12),
+        LinearProgressIndicator(
+          value: _confidence,
+          backgroundColor: Colors.white24,
+          color: Colors.greenAccent,
+          minHeight: 8,
+        ),
+        const SizedBox(height: 20),
+        if (isTimeBased) ...[
+          _buildStatRow(
+            Icons.timer,
+            "Current Hold",
+            "${currentHold.toStringAsFixed(1)}s",
+          ),
+          const SizedBox(height: 10),
+          _buildStatRow(
+            Icons.emoji_events,
+            "Best Hold",
+            "${bestHold.toStringAsFixed(1)}s",
+          ),
+        ] else ...[
+          _buildStatRow(
+            Icons.repeat,
+            "Reps",
+            "$reps",
           ),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Confidence
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Text(
-              "Confidence: ${(_confidence * 100).toStringAsFixed(1)}%",
-              key: ValueKey(_confidence.toStringAsFixed(1)),
-              style: const TextStyle(color: Colors.white),
-            ),
+      ],
+    );
+  }
+
+  Widget _buildStatRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 22),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
-          const SizedBox(height: 4),
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: _confidence),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) => LinearProgressIndicator(
-              value: value,
-              backgroundColor: Colors.white.withValues(alpha: 0.24),
-              color: Colors.greenAccent,
-              minHeight: 8,
-            ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
-          const SizedBox(height: 16),
-          // Reps
-          Row(
-            children: [
-              const Icon(Icons.repeat, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(
-                "Reps: ${_reps[_selectedPose] ?? 0}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Hold Times
-          if (_holds[_selectedPose] != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Hold Times:",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Current: ${_holds[_selectedPose]!["current"]!.toStringAsFixed(1)}s | Best: ${_holds[_selectedPose]!["best"]!.toStringAsFixed(1)}s",
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ],
-            ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

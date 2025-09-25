@@ -14,24 +14,18 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   final Color green = const Color(0xFF2E9265);
-  final ScrollController _scrollController = ScrollController();
-  double _offset = 0;
   late TextEditingController _setsController;
   late TextEditingController _repsController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() => _offset = _scrollController.offset * 0.5);
-    });
     _setsController = TextEditingController(text: widget.exercise.sets);
     _repsController = TextEditingController(text: widget.exercise.reps);
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
     _setsController.dispose();
     _repsController.dispose();
     super.dispose();
@@ -40,131 +34,114 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final exercise = widget.exercise;
+    final bool isTimeBased =
+        exercise.name.toLowerCase().contains("plank"); 
 
     return Scaffold(
       backgroundColor: const Color(0xFF181717),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: [
-                  _buildSliverAppBar(exercise),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(20),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        _buildExerciseInfo(exercise),
-                        if (exercise.muscles.isNotEmpty) _buildMuscleTags(exercise),
-                        const SizedBox(height: 24),
-                        if (exercise.steps.isNotEmpty)
-                          _buildSection("คำแนะนำ", exercise.steps),
-                        if (exercise.tips.isNotEmpty) _buildTips(exercise),
-                        _buildBenefits(exercise),
-                        const SizedBox(height: 20),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: Button(
-                buttonText: "เริ่มออกกำลังกาย",
-                isEnabled: true,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CameraScreen(exercise: widget.exercise.name),
-                    ),
-                  );
-                },
-                icon: Icons.play_arrow,
-              ),
-            ),
-            _buildCloseButton(),
-          ],
+      appBar: AppBar(
+        automaticallyImplyLeading: true,
+        backgroundColor: const Color(0xFF181717),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+        title: Text(
+          exercise.name,
+          style: const TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Colors.white24,
+            height: 1,
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSliverAppBar(ExerciseInfo exercise) {
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 280,
-      backgroundColor: const Color(0xFF181717),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            Transform.translate(
-              offset: Offset(0, -_offset),
-              child: exercise.image.isNotEmpty
-                  ? Image.network(exercise.image, fit: BoxFit.cover)
-                  : Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color.fromRGBO(128, 0, 128, 0.3),
-                            Color.fromRGBO(33, 150, 243, 0.5),
-                            Color.fromRGBO(0, 188, 212, 0.3),
-                          ],
-                        ),
-                      ),
-                      child: const Icon(Icons.fitness_center, color: Colors.white70, size: 64),
-                    ),
-            ),
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color.fromRGBO(0, 0, 0, 0.3), Color.fromRGBO(0, 0, 0, 0.7)],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              child: _buildVideoButton(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVideoButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(244, 67, 54, 0.9),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Color.fromRGBO(244, 67, 54, 0.3), blurRadius: 8, offset: Offset(0, 2)),
-        ],
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
+      body: Stack(
         children: [
-          Icon(Icons.play_arrow, color: Colors.white, size: 16),
-          SizedBox(width: 4),
-          Text("วิดีโอท่า", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: ListView(
+              children: [
+                _buildExerciseImage(exercise),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildExerciseInfo(exercise, isTimeBased),
+                      if (exercise.muscles.isNotEmpty) _buildMuscleTags(exercise),
+                      const SizedBox(height: 24),
+                      if (exercise.steps.isNotEmpty)
+                        _buildSection("คำแนะนำ", exercise.steps),
+                      if (exercise.tips.isNotEmpty) _buildTips(exercise),
+                      _buildBenefits(exercise),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Button(
+              buttonText: "เริ่มออกกำลังกาย",
+              isEnabled: true,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        CameraScreen(exercise: widget.exercise.name),
+                  ),
+                );
+              },
+              icon: Icons.play_arrow,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildExerciseInfo(ExerciseInfo exercise) {
+  // ---------------- Exercise Image ----------------
+  Widget _buildExerciseImage(ExerciseInfo exercise) {
+    return Container(
+      width: double.infinity,
+      height: 250,
+      decoration: BoxDecoration(
+        image: exercise.image.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(exercise.image), fit: BoxFit.cover)
+            : null,
+        gradient: exercise.image.isEmpty
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.fromRGBO(128, 0, 128, 0.3),
+                  Color.fromRGBO(33, 150, 243, 0.5),
+                  Color.fromRGBO(0, 188, 212, 0.3),
+                ],
+              )
+            : null,
+      ),
+      child: exercise.image.isEmpty
+          ? const Center(
+              child: Icon(Icons.fitness_center,
+                  color: Colors.white70, size: 64),
+            )
+          : null,
+    );
+  }
+
+  // ---------------- Exercise Info ----------------
+  Widget _buildExerciseInfo(ExerciseInfo exercise, bool isTimeBased) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -176,24 +153,22 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Text(exercise.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildEditableStatCard("เซต", _setsController, Icons.repeat, green),
-              Container(height: 30, width: 1, color: const Color.fromRGBO(158, 158, 158, 1)),
-              _buildEditableStatCard("ครั้ง", _repsController, Icons.fitness_center, green),
-            ],
-          ),
+          _buildEditableStatCard("เซต", _setsController, Icons.repeat, green),
+          Container(height: 30, width: 1, color: const Color.fromRGBO(158, 158, 158, 1)),
+          if (isTimeBased)
+            _buildEditableStatCard("เวลา (วินาที)", _repsController, Icons.timer, green)
+          else
+            _buildEditableStatCard("ครั้ง", _repsController, Icons.fitness_center, green),
         ],
       ),
     );
   }
 
-  Widget _buildEditableStatCard(String label, TextEditingController controller, IconData icon, Color iconColor) {
+  Widget _buildEditableStatCard(
+      String label, TextEditingController controller, IconData icon, Color iconColor) {
     return Column(
       children: [
         Icon(icon, color: iconColor, size: 24),
@@ -218,7 +193,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               alignment: Alignment.center,
               child: Text(
                 controller.text,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             _buildIconAdjustButton(
@@ -250,6 +226,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
+  // ---------------- Muscle Tags ----------------
   Widget _buildMuscleTags(ExerciseInfo exercise) {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -275,6 +252,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
+  // ---------------- Sections ----------------
   Widget _buildSection(String title, List<String> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,10 +276,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Text("${i + 1}", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                  child: Center(
+                      child: Text("${i + 1}",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4))),
+                Expanded(
+                    child: Text(text,
+                        style: const TextStyle(
+                            fontSize: 16, color: Colors.white, height: 1.4))),
               ],
             ),
           );
@@ -335,8 +321,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("• ", style: TextStyle(color: Colors.white, fontSize: 18)),
-                      Expanded(child: Text(line, style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4))),
+                      const Text("• ",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                      Expanded(
+                          child: Text(line,
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  height: 1.4))),
                     ],
                   ),
                 );
@@ -356,7 +348,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         _buildSectionTitle("ประโยชน์"),
         const SizedBox(height: 12),
         Container(
-          width: double.infinity, 
+          width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color.fromRGBO(18, 18, 18, 0.5),
@@ -365,23 +357,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           ),
           child: Text(
             exercise.benefits,
-            style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4),
+            style: const TextStyle(
+                fontSize: 16, color: Colors.white, height: 1.4),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white));
-
-  Widget _buildCloseButton() {
-    return Positioned(
-      top: 16,
-      right: 16,
-      child: Container(
-        decoration: BoxDecoration(color: const Color.fromRGBO(0, 0, 0, 0.6), borderRadius: BorderRadius.circular(24)),
-        child: IconButton(icon: const Icon(Icons.close, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)),
-      ),
-    );
-  }
+  Widget _buildSectionTitle(String title) => Text(title,
+      style: const TextStyle(
+          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white));
 }
