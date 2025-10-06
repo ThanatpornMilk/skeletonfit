@@ -17,7 +17,8 @@ dependencies:
   camera: ^0.10.5+9
   web_socket_channel: ^2.4.0
   image: ^4.0.17
-  http: ^1.1.0       
+  http: ^1.1.0
+  flutter_secure_storage: ^9.0.0 
 
 dev_dependencies:
   flutter_test:

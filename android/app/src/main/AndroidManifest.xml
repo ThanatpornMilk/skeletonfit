@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.skeletonfit">
 
-    <!-- 👇 Permissions สำหรับการใช้กล้อง -->
+    <!-- Permissions สำหรับการใช้กล้อง -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="true"/>
 
@@ -36,7 +36,7 @@
             android:value="2" />
     </application>
 
-    <!-- 👇 Optional: ถ้าแอปคุณมี intent อื่น -->
+    <!-- Optional: ถ้าแอปมี intent อื่น -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

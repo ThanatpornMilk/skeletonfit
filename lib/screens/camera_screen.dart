@@ -95,7 +95,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
       _cameraController = CameraController(
         camera,
-        ResolutionPreset.medium,
+        ResolutionPreset.medium, 
         enableAudio: false,
       );
 
@@ -114,15 +114,17 @@ class _CameraScreenState extends State<CameraScreen> {
       if (!_isStreaming) return;
 
       final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - _lastSentTime < 200) return;
+      if (now - _lastSentTime < 350) return; // ส่งทุก ~0.35s (~3 fps)
       _lastSentTime = now;
 
       try {
         if (_channel.closeCode != null) return;
 
-        final jpgBytes = await _convertCameraImageToJpg(image);
-        final base64Image = base64Encode(jpgBytes);
-        _channel.sink.add(base64Image);
+        Future.microtask(() async {
+          final jpgBytes = await _convertCameraImageToJpg(image);
+          final base64Image = base64Encode(jpgBytes);
+          _channel.sink.add(base64Image);
+        });
       } catch (e) {
         debugPrint("Image conversion/send error: $e");
       }
@@ -158,7 +160,10 @@ class _CameraScreenState extends State<CameraScreen> {
       }
     }
 
-    return Uint8List.fromList(img.encodeJpg(imgImage));
+    // 🔥 Resize ให้เล็กลงก่อนส่ง (ประหยัด bandwidth + CPU)
+    final resized = img.copyResize(imgImage, width: 224, height: 224);
+
+    return Uint8List.fromList(img.encodeJpg(resized, quality: 70));
   }
 
   // ---------------- Build ----------------
@@ -182,7 +187,7 @@ class _CameraScreenState extends State<CameraScreen> {
               _cameraController!.value.isInitialized)
           ? Column(
               children: [
-                // กล้องเต็มพอดี ต่อกับ Header
+                // กล้องเต็มพอดี ต่อจาก Header
                 Expanded(
                   child: Stack(
                     children: [
@@ -202,7 +207,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
 
-                // StatsCard ด้านล่าง
+                // StatsCard
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -240,7 +245,7 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  // ---------------- Stats Content ----------------
+  // ---------------- Stats ----------------
   Widget _buildStatsContent(bool isTimeBased) {
     final String poseKey = _selectedPose ?? widget.exercise;
     final int reps = _reps[poseKey] ?? 0;

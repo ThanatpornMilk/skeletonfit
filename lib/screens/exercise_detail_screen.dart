@@ -34,8 +34,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final exercise = widget.exercise;
-    final bool isTimeBased =
-        exercise.name.toLowerCase().contains("plank"); 
+    final bool isTimeBased = exercise.name.toLowerCase().contains("plank");
 
     return Scaffold(
       backgroundColor: const Color(0xFF181717),
@@ -45,9 +44,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           exercise.name,
           style: const TextStyle(color: Colors.white),
@@ -92,16 +89,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             child: Button(
               buttonText: "เริ่มออกกำลังกาย",
               isEnabled: true,
-              onPressed: () {
+              onPressed: () async { 
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        CameraScreen(exercise: widget.exercise.name),
+                    builder: (context) => CameraScreen(exercise: widget.exercise.name),
                   ),
                 );
               },
-              icon: Icons.play_arrow,
             ),
           ),
         ],
@@ -116,8 +111,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       height: 250,
       decoration: BoxDecoration(
         image: exercise.image.isNotEmpty
-            ? DecorationImage(
-                image: NetworkImage(exercise.image), fit: BoxFit.cover)
+            ? DecorationImage(image: NetworkImage(exercise.image), fit: BoxFit.cover)
             : null,
         gradient: exercise.image.isEmpty
             ? const LinearGradient(
@@ -133,8 +127,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       ),
       child: exercise.image.isEmpty
           ? const Center(
-              child: Icon(Icons.fitness_center,
-                  color: Colors.white70, size: 64),
+              child: Icon(Icons.fitness_center, color: Colors.white70, size: 64),
             )
           : null,
     );
@@ -326,9 +319,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                       Expanded(
                           child: Text(line,
                               style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  height: 1.4))),
+                                  fontSize: 16, color: Colors.white, height: 1.4))),
                     ],
                   ),
                 );
@@ -357,8 +348,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           ),
           child: Text(
             exercise.benefits,
-            style: const TextStyle(
-                fontSize: 16, color: Colors.white, height: 1.4),
+            style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4),
           ),
         ),
       ],

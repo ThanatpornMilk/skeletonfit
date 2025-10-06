@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; 
 import '../widgets/radial_background.dart';
 import '../widgets/custom_text_field.dart';
-import '../widgets/custom_back_button.dart'; 
+import '../widgets/custom_back_button.dart';
+import '../widgets/button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,7 +17,50 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _secureStorage = const FlutterSecureStorage(); 
+
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  bool _rememberMe = false; 
+
+  String? _emailError;
+  String? _passwordError;
+
+  final _passwordRegex = RegExp(
+    r'''^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%\^&\*\(\)_\+\|\~\\\-=`{}\[\]:";'<>?,./]).{8,}$'''
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final savedEmail = await _secureStorage.read(key: 'email');
+    final savedPassword = await _secureStorage.read(key: 'password');
+    final remember = await _secureStorage.read(key: 'rememberMe');
+
+    if (remember == 'true' && savedEmail != null && savedPassword != null) {
+      setState(() {
+        _emailController.text = savedEmail;
+        _passwordController.text = savedPassword;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _saveCredentials(String email, String password) async {
+    if (_rememberMe) {
+      await _secureStorage.write(key: 'email', value: email);
+      await _secureStorage.write(key: 'password', value: password);
+      await _secureStorage.write(key: 'rememberMe', value: 'true');
+    } else {
+      await _secureStorage.delete(key: 'email');
+      await _secureStorage.delete(key: 'password');
+      await _secureStorage.write(key: 'rememberMe', value: 'false');
+    }
+  }
 
   @override
   void dispose() {
@@ -22,11 +69,75 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _validateAndLogin() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    bool valid = true;
+
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      _emailError = "Invalid email format";
+      valid = false;
+    }
+
+    if (password.isEmpty) {
+      _passwordError = "Password cannot be empty";
+      valid = false;
+    } else if (!_passwordRegex.hasMatch(password)) {
+      _passwordError = "Password must include upper, lower, number & special char";
+      valid = false;
+    }
+
+    if (!valid) {
+      setState(() {});
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final url = Uri.parse("http://10.0.2.2:3000/login");
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "password": password}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        await _saveCredentials(email, password); 
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data["message"] ?? "Login successful")),
+        );
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data["error"] ?? "Login failed")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Login error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Network error")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const green = Color.fromRGBO(46, 146, 101, 1);
-    const darkGreen = Color.fromRGBO(30, 122, 66, 1);
-
     return Scaffold(
       body: RadialBackground(
         bg: const Color.fromRGBO(24, 23, 23, 1),
@@ -37,12 +148,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header
                   Column(
                     children: [
-                      const CustomBackButton(), 
+                      const CustomBackButton(),
                       const SizedBox(height: 20),
-                      _buildLogo(green, darkGreen),
+                      _buildLogo(),
                       const SizedBox(height: 30),
                       const Text(
                         "Welcome Back",
@@ -63,8 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 40),
                     ],
                   ),
-
-                  // Form
                   Column(
                     children: [
                       CustomTextField(
@@ -72,6 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: "Email address",
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        errorText: _emailError,
                       ),
                       const SizedBox(height: 24),
                       CustomTextField(
@@ -82,28 +191,47 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscurePassword,
                         onToggleVisibility: () =>
                             setState(() => _obscurePassword = !_obscurePassword),
+                        errorText: _passwordError,
                       ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/reset'),
-                          child: const Text(
-                            "Forgot Password?",
-                            style: TextStyle(
-                              color: green,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                onChanged: (val) {
+                                  setState(() => _rememberMe = val ?? false);
+                                },
+                                activeColor: const Color(0xFF2E9265),
+                              ),
+                              const Text(
+                                "Remember Me",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pushNamed(context, '/reset'),
+                            child: const Text(
+                              "Forgot Password?",
+                              style: TextStyle(
+                                color: Color.fromRGBO(46, 146, 101, 1),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 30),
-                      _buildLoginButton(green, darkGreen),
+                      const SizedBox(height: 20),
+                      Button(
+                        onPressed: _isLoading ? null : _validateAndLogin,
+                        isEnabled: !_isLoading,
+                        buttonText: "Login",
+                      ),
                     ],
                   ),
-
-                  // Footer
                   Column(
                     children: const [
                       SizedBox(height: 30),
@@ -121,63 +249,24 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLogo(Color green, Color darkGreen) {
+  Widget _buildLogo() {
     return Container(
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [green, darkGreen]),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2E9265), Color(0xFF1E7A42)],
+        ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: green.withValues(alpha: 0.3),
+            color: Color.fromRGBO(46, 146, 101, 0.3),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: const Icon(Icons.lock_outline, color: Colors.white, size: 40),
-    );
-  }
-
-  Widget _buildLoginButton(Color green, Color darkGreen) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [green, darkGreen]),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: green.withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () {
-          debugPrint(
-              "Login with ${_emailController.text} / ${_passwordController.text}");
-          Navigator.pushReplacementNamed(context, '/home');
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: const Text(
-          "Login",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
     );
   }
 }
