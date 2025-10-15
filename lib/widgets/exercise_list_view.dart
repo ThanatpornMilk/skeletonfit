@@ -82,30 +82,6 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
     super.dispose();
   }
 
-  String get setsRepsText {
-    final name = widget.exercise.name.toLowerCase();
-
-    // ถ้าเป็น plank หรือ side plank ให้ใช้ duration แทน reps
-    if (name.contains('plank')) {
-      if (widget.exercise.sets.isNotEmpty && widget.exercise.duration.isNotEmpty) {
-        return '${widget.exercise.sets} | เซตละ ${widget.exercise.duration} วินาที';
-      } else if (widget.exercise.duration.isNotEmpty) {
-        return 'เซตละ ${widget.exercise.duration} วินาที';
-      }
-    }
-
-    // กรณีท่าอื่น ๆ
-    if (widget.exercise.sets.isNotEmpty && widget.exercise.reps.isNotEmpty) {
-      return '${widget.exercise.sets} | เซตละ ${widget.exercise.reps} ครั้ง';
-      } else if (widget.exercise.sets.isNotEmpty) {
-        return widget.exercise.sets;
-      } else if (widget.exercise.reps.isNotEmpty) {
-        return '${widget.exercise.reps} ครั้ง';
-      }
-
-    return '';
-  }
-
   @override
   Widget build(BuildContext context) {
     return SlideTransition(
@@ -271,33 +247,6 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
             ),
           ),
         ),
-        if (setsRepsText.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4ECDC4), Color(0xFF2E8B57)],
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child:
-                    const Icon(Icons.fitness_center, color: Colors.white, size: 12),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                setsRepsText,
-                style: const TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.7),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
