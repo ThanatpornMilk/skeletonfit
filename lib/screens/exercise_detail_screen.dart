@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/exercises.dart';
 import '../widgets/button.dart';
+import '../services/api_service.dart';
+import '../providers/user_provider.dart';
 import 'camera_screen.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseInfo exercise;
 
-  const ExerciseDetailScreen({super.key, required this.exercise});
+  const ExerciseDetailScreen({
+    super.key,
+    required this.exercise,
+  });
 
   @override
   State<ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
@@ -14,21 +20,91 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   final Color green = const Color(0xFF2E9265);
-  late TextEditingController _setsController;
-  late TextEditingController _repsController;
+  final TextEditingController _setsController = TextEditingController(text: '');
+  final TextEditingController _valueController = TextEditingController(text: '');
+
+
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _setsController = TextEditingController(text: widget.exercise.sets);
-    _repsController = TextEditingController(text: widget.exercise.reps);
+
+    _setsController.text = widget.exercise.sets;
+
+    // ถ้าเป็น plank หรือ side plank ใช้ duration แทน reps
+    if (widget.exercise.name.toLowerCase().contains("plank")) {
+      _valueController.text = widget.exercise.duration;
+    } else {
+      _valueController.text = widget.exercise.reps;
+    }
+
+    _loadUserExercise();
   }
 
   @override
   void dispose() {
     _setsController.dispose();
-    _repsController.dispose();
+    _valueController.dispose();
     super.dispose();
+  }
+
+  // ===================== โหลดข้อมูลจากฐานข้อมูล =====================
+  Future<void> _loadUserExercise() async {
+    try {
+      final userId = Provider.of<UserProvider>(context, listen: false).userId;
+      if (userId == null) return;
+
+      final data =
+          await ApiService.fetchUserExercise(userId, widget.exercise.id);
+
+      if (data != null) {
+        final isTimeBased = widget.exercise.name.toLowerCase().contains("plank");
+        setState(() {
+          if (data['sets'] != null) {
+            _setsController.text = data['sets'].toString();
+          }
+
+          if (isTimeBased && data['duration'] != null) {
+            _valueController.text = data['duration'].toString();
+          } else if (!isTimeBased && data['reps'] != null) {
+            _valueController.text = data['reps'].toString();
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load user exercise: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ===================== บันทึกค่า user_exercises =====================
+  Future<void> _saveUserExercise() async {
+    try {
+      final userId = Provider.of<UserProvider>(context, listen: false).userId;
+      if (userId == null) {
+        debugPrint("User ID is null, cannot save.");
+        return;
+      }
+
+      final isTimeBased = widget.exercise.name.toLowerCase().contains("plank");
+
+      await ApiService.saveUserExercise(
+        userId: userId,
+        exerciseId: widget.exercise.id,
+        sets: _setsController.text,
+        reps: isTimeBased ? null : _valueController.text,
+        duration: isTimeBased ? _valueController.text : null,
+      );
+
+      debugPrint("User exercise saved successfully");
+    } catch (e) {
+      debugPrint("Error saving user exercise: $e");
+    }
+
+    // ✅ เพิ่ม return ที่แน่นอน เพื่อไม่ให้ analyzer เตือน
+    return;
   }
 
   @override
@@ -42,8 +118,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         automaticallyImplyLeading: true,
         backgroundColor: const Color(0xFF181717),
         elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           exercise.name,
@@ -52,55 +126,59 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.white24,
-            height: 1,
-          ),
+          child: Container(color: Colors.white24, height: 1),
         ),
       ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: ListView(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2E9265)),
+            )
+          : Stack(
               children: [
-                _buildExerciseImage(exercise),
                 Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  child: ListView(
                     children: [
-                      _buildExerciseInfo(exercise, isTimeBased),
-                      if (exercise.muscles.isNotEmpty) _buildMuscleTags(exercise),
-                      const SizedBox(height: 24),
-                      if (exercise.steps.isNotEmpty)
-                        _buildSection("คำแนะนำ", exercise.steps),
-                      if (exercise.tips.isNotEmpty) _buildTips(exercise),
-                      _buildBenefits(exercise),
+                      _buildExerciseImage(exercise),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            _buildExerciseInfo(exercise, isTimeBased),
+                            if (exercise.muscles.isNotEmpty)
+                              _buildMuscleTags(exercise),
+                            const SizedBox(height: 24),
+                            if (exercise.steps.isNotEmpty)
+                              _buildSection("คำแนะนำ", exercise.steps),
+                            if (exercise.tips.isNotEmpty) _buildTips(exercise),
+                            _buildBenefits(exercise),
+                          ],
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                  child: Button(
+                    buttonText: "เริ่มออกกำลังกาย",
+                    isEnabled: true,
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CameraScreen(exercise: widget.exercise.name),
+                        ),
+                      );
+                      return; 
+                    },
                   ),
                 ),
               ],
             ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Button(
-              buttonText: "เริ่มออกกำลังกาย",
-              isEnabled: true,
-              onPressed: () async { 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CameraScreen(exercise: widget.exercise.name),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -110,24 +188,28 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       width: double.infinity,
       height: 250,
       decoration: BoxDecoration(
-        image: exercise.image.isNotEmpty
-            ? DecorationImage(image: NetworkImage(exercise.image), fit: BoxFit.cover)
+        image: exercise.imageUrl.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(exercise.imageUrl),
+                fit: BoxFit.cover,
+              )
             : null,
-        gradient: exercise.image.isEmpty
+        gradient: exercise.imageUrl.isEmpty
             ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
                 colors: [
                   Color.fromRGBO(128, 0, 128, 0.3),
                   Color.fromRGBO(33, 150, 243, 0.5),
                   Color.fromRGBO(0, 188, 212, 0.3),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               )
             : null,
       ),
-      child: exercise.image.isEmpty
+      child: exercise.imageUrl.isEmpty
           ? const Center(
-              child: Icon(Icons.fitness_center, color: Colors.white70, size: 64),
+              child: Icon(Icons.fitness_center,
+                  color: Colors.white70, size: 64),
             )
           : null,
     );
@@ -139,29 +221,33 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color.fromRGBO(18, 18, 18, 0.8), Color.fromRGBO(33, 33, 33, 0.6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [
+            Color.fromRGBO(18, 18, 18, 0.8),
+            Color.fromRGBO(33, 33, 33, 0.6)
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
+        border:
+            Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildEditableStatCard("เซต", _setsController, Icons.repeat, green),
-          Container(height: 30, width: 1, color: const Color.fromRGBO(158, 158, 158, 1)),
+          Container(height: 30, width: 1, color: Colors.grey),
           if (isTimeBased)
-            _buildEditableStatCard("เวลา (วินาที)", _repsController, Icons.timer, green)
+            _buildEditableStatCard(
+                "เวลา (วินาที)", _valueController, Icons.timer, green)
           else
-            _buildEditableStatCard("ครั้ง", _repsController, Icons.fitness_center, green),
+            _buildEditableStatCard(
+                "ครั้ง", _valueController, Icons.fitness_center, green),
         ],
       ),
     );
   }
 
-  Widget _buildEditableStatCard(
-      String label, TextEditingController controller, IconData icon, Color iconColor) {
+  Widget _buildEditableStatCard(String label, TextEditingController controller,
+      IconData icon, Color iconColor) {
     return Column(
       children: [
         Icon(icon, color: iconColor, size: 24),
@@ -174,11 +260,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               onPressed: () {
                 setState(() {
                   int value = int.tryParse(controller.text) ?? 1;
-                  if (value > 1) {
-                    value--;
-                    controller.text = value.toString();
-                  }
+                  if (value > 1) value--;
+                  controller.text = value.toString();
                 });
+                _saveUserExercise();
               },
             ),
             Container(
@@ -187,7 +272,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: Text(
                 controller.text,
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
             ),
             _buildIconAdjustButton(
@@ -198,6 +285,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   value++;
                   controller.text = value.toString();
                 });
+                _saveUserExercise();
               },
             ),
           ],
@@ -208,7 +296,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
-  Widget _buildIconAdjustButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildIconAdjustButton(
+      {required IconData icon, required VoidCallback onPressed}) {
     return InkWell(
       onTap: onPressed,
       child: SizedBox(
@@ -229,14 +318,20 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           scrollDirection: Axis.horizontal,
           itemCount: exercise.muscles.length,
           separatorBuilder: (_, __) => const SizedBox(width: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
           itemBuilder: (context, index) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+              color: green,
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Center(
               child: Text(
                 exercise.muscles[index],
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -261,26 +356,42 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             decoration: BoxDecoration(
               color: const Color.fromRGBO(18, 18, 18, 0.5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
+              border: Border.all(
+                color: const Color.fromRGBO(97, 97, 97, 0.3),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
                 Container(
                   width: 24,
                   height: 24,
-                  decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Center(
-                      child: Text("${i + 1}",
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold))),
+                    child: Text(
+                      "${i + 1}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                    child: Text(text,
-                        style: const TextStyle(
-                            fontSize: 16, color: Colors.white, height: 1.4))),
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -289,6 +400,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
+  // ---------------- Tips ----------------
   Widget _buildTips(ExerciseInfo exercise) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +413,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           decoration: BoxDecoration(
             color: const Color.fromRGBO(18, 18, 18, 0.5),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
+            border: Border.all(
+              color: const Color.fromRGBO(97, 97, 97, 0.3),
+              width: 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,12 +429,20 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("• ",
-                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                      const Text(
+                        "• ",
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
                       Expanded(
-                          child: Text(line,
-                              style: const TextStyle(
-                                  fontSize: 16, color: Colors.white, height: 1.4))),
+                        child: Text(
+                          line,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -332,6 +455,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
+  // ---------------- Benefits ----------------
   Widget _buildBenefits(ExerciseInfo exercise) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,18 +468,30 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           decoration: BoxDecoration(
             color: const Color.fromRGBO(18, 18, 18, 0.5),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color.fromRGBO(97, 97, 97, 0.3), width: 1),
+            border: Border.all(
+              color: const Color.fromRGBO(97, 97, 97, 0.3),
+              width: 1,
+            ),
           ),
           child: Text(
             exercise.benefits,
-            style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.white,
+              height: 1.4,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(title,
-      style: const TextStyle(
-          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white));
+  Widget _buildSectionTitle(String title) => Text(
+        title,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
 }

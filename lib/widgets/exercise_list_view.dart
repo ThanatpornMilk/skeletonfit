@@ -13,7 +13,7 @@ class ExerciseListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32), 
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       itemCount: exercises.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
@@ -83,13 +83,26 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
   }
 
   String get setsRepsText {
-    if (widget.exercise.sets.isNotEmpty && widget.exercise.reps.isNotEmpty) {
-      return '${widget.exercise.sets} | เซตละ ${widget.exercise.reps}';
-    } else if (widget.exercise.sets.isNotEmpty) {
-      return widget.exercise.sets;
-    } else if (widget.exercise.reps.isNotEmpty) {
-      return widget.exercise.reps;
+    final name = widget.exercise.name.toLowerCase();
+
+    // ถ้าเป็น plank หรือ side plank ให้ใช้ duration แทน reps
+    if (name.contains('plank')) {
+      if (widget.exercise.sets.isNotEmpty && widget.exercise.duration.isNotEmpty) {
+        return '${widget.exercise.sets} | เซตละ ${widget.exercise.duration} วินาที';
+      } else if (widget.exercise.duration.isNotEmpty) {
+        return 'เซตละ ${widget.exercise.duration} วินาที';
+      }
     }
+
+    // กรณีท่าอื่น ๆ
+    if (widget.exercise.sets.isNotEmpty && widget.exercise.reps.isNotEmpty) {
+      return '${widget.exercise.sets} | เซตละ ${widget.exercise.reps} ครั้ง';
+      } else if (widget.exercise.sets.isNotEmpty) {
+        return widget.exercise.sets;
+      } else if (widget.exercise.reps.isNotEmpty) {
+        return '${widget.exercise.reps} ครั้ง';
+      }
+
     return '';
   }
 
@@ -129,7 +142,9 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ExerciseDetailScreen(exercise: widget.exercise),
+                builder: (_) => ExerciseDetailScreen(
+                  exercise: widget.exercise,
+                ),
               ),
             );
           },
@@ -209,14 +224,31 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
           borderRadius: BorderRadius.circular(14),
         ),
         clipBehavior: Clip.hardEdge,
-        child: Image.asset(
-          widget.exercise.image,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: Colors.grey[300],
-            child: const Icon(Icons.fitness_center, color: Colors.grey, size: 24),
-          ),
-        ),
+        child: widget.exercise.imageUrl.isNotEmpty
+            ? Image.network(
+                widget.exercise.imageUrl,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF2E8B57),
+                      strokeWidth: 2,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.broken_image,
+                      color: Colors.grey, size: 24),
+                ),
+              )
+            : Container(
+                color: Colors.grey[200],
+                child: const Icon(Icons.fitness_center,
+                    color: Colors.grey, size: 24),
+              ),
       ),
     );
   }
@@ -251,7 +283,8 @@ class _AnimatedExerciseCardState extends State<AnimatedExerciseCard>
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Icon(Icons.fitness_center, color: Colors.white, size: 12),
+                child:
+                    const Icon(Icons.fitness_center, color: Colors.white, size: 12),
               ),
               const SizedBox(width: 6),
               Text(

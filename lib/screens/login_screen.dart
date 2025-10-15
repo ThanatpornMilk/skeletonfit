@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/radial_background.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_back_button.dart';
@@ -17,18 +19,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _secureStorage = const FlutterSecureStorage(); 
+  final _secureStorage = const FlutterSecureStorage();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _rememberMe = false; 
+  bool _rememberMe = false;
 
   String? _emailError;
   String? _passwordError;
-
-  final _passwordRegex = RegExp(
-    r'''^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%\^&\*\(\)_\+\|\~\\\-=`{}\[\]:";'<>?,./]).{8,}$'''
-  );
 
   @override
   void initState() {
@@ -40,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final savedEmail = await _secureStorage.read(key: 'email');
     final savedPassword = await _secureStorage.read(key: 'password');
     final remember = await _secureStorage.read(key: 'rememberMe');
+
+    if (!mounted) return;
 
     if (remember == 'true' && savedEmail != null && savedPassword != null) {
       setState(() {
@@ -90,11 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (password.isEmpty) {
       _passwordError = "Password cannot be empty";
       valid = false;
-    } else if (!_passwordRegex.hasMatch(password)) {
-      _passwordError = "Password must include upper, lower, number & special char";
-      valid = false;
-    }
-
+    } 
     if (!valid) {
       setState(() {});
       return;
@@ -110,15 +106,24 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({"email": email, "password": password}),
       );
 
+      if (!mounted) return; // ป้องกัน context หลัง await
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        await _saveCredentials(email, password); 
+      if (response.statusCode == 200 && data['user'] != null) {
+        await _saveCredentials(email, password);
 
-        if (!mounted) return;
+        if (!mounted) return; // เช็คอีกครั้ง
+
+        final int userId = data['user']['user_id'];
+        Provider.of<UserProvider>(context, listen: false).setUser(userId);
+
+        debugPrint("Login success. user_id = $userId");
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"] ?? "Login successful")),
         );
+
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         if (!mounted) return;
@@ -213,7 +218,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           TextButton(
-                            onPressed: () => Navigator.pushNamed(context, '/reset'),
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/reset'),
                             child: const Text(
                               "Forgot Password?",
                               style: TextStyle(
@@ -228,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Button(
                         onPressed: _isLoading ? null : _validateAndLogin,
                         isEnabled: !_isLoading,
-                        buttonText: "Login",
+                        buttonText: _isLoading ? "Loading..." : "Login",
                       ),
                     ],
                   ),

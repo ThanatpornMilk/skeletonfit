@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../widgets/custom_back_button.dart';
+import '../widgets/navbar.dart';
+import '../widgets/radial_background.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -8,345 +10,210 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
-
-    _fadeController.forward();
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
+class _ProfileScreenState extends State<ProfileScreen> {
+  final String username = "thanatporn";
+  final String email = "thanatporn@example.com";
+  final int workouts = 24;
+  final int minutes = 380;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ✅ ใช้ backgroundColor แบบเดียวกับ CustomScreen
+      extendBody: true,
       backgroundColor: const Color(0xFF181717),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                _buildAppBar(context),
-                const SizedBox(height: 32),
-                _buildProfileHeader(),
-                const SizedBox(height: 40),
-                _buildInfoSection(),
-                const SizedBox(height: 32),
-                _buildActionButtons(context),
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildAppBar(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 255, 255, 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color.fromRGBO(255, 255, 255, 0.2),
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              Navigator.pop(context);
-            },
-          ),
-        ),
-        const SizedBox(width: 16),
-        const Expanded(
-          child: Text(
-            'Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 255, 255, 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color.fromRGBO(255, 255, 255, 0.2),
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              _showMoreOptions(context);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    return Column(
-      children: [
-        Stack(
+      // ✅ หัวแบบ Dashboard + ปุ่มย้อนกลับ
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF181717),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        title: Row(
           children: [
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: const Color.fromRGBO(255, 255, 255, 0.05),
-              child: const Icon(
-                Icons.person,
-                color: Color.fromRGBO(255, 255, 255, 0.8),
-                size: 36,
-              ),
-            ),
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(255, 255, 255, 0.05),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 2),
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Color.fromRGBO(255, 255, 255, 0.8),
-                  size: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'ชื่อของคุณ',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 255, 255, 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 1),
-          ),
-          child: const Text(
-            'example@email.com',
-            style: TextStyle(
-              color: Color.fromRGBO(255, 255, 255, 0.8),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoSection() {
-    final infoItems = [
-      {'title': 'วันเกิด', 'value': '1 มกราคม 1995', 'icon': Icons.cake_outlined},
-      {'title': 'น้ำหนัก', 'value': '70 kg', 'icon': Icons.monitor_weight_outlined},
-      {'title': 'ส่วนสูง', 'value': '175 cm', 'icon': Icons.height},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(255, 255, 255, 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color.fromRGBO(255, 255, 255, 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ข้อมูลส่วนตัว',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...infoItems.map((item) => _InfoTile(
-                title: item['title'] as String,
-                value: item['value'] as String,
-                icon: item['icon'] as IconData,
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    final actions = [
-      {'icon': Icons.edit_outlined, 'label': 'แก้ไขโปรไฟล์'},
-      {'icon': Icons.settings_outlined, 'label': 'ตั้งค่า'},
-      {'icon': Icons.help_outline, 'label': 'ช่วยเหลือ'},
-      {'icon': Icons.logout_outlined, 'label': 'ออกจากระบบ', 'isDestructive': true},
-    ];
-
-    return Column(
-      children: actions.map((action) => _ProfileButton(
-            icon: action['icon'] as IconData,
-            label: action['label'] as String,
-            isDestructive: action['isDestructive'] == true,
-            onTap: () {
-              HapticFeedback.lightImpact();
-            },
-          )).toList(),
-    );
-  }
-
-  void _showMoreOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1A1B23),
-              Color(0xFF0F1419),
-            ],
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(
-            color: const Color.fromRGBO(255, 255, 255, 0.1),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 255, 255, 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
+            const CustomBackButton(),
+            const Spacer(),
             const Text(
-              'เพิ่มเติม',
+              'Profile',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 22,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            _ProfileButton(
-              icon: Icons.share_outlined,
-              label: 'แชร์โปรไฟล์',
-              onTap: () => Navigator.pop(context),
-            ),
-            _ProfileButton(
-              icon: Icons.privacy_tip_outlined,
-              label: 'ความเป็นส่วนตัว',
-              onTap: () => Navigator.pop(context),
-            ),
+            const Spacer(flex: 2),
           ],
         ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color.fromRGBO(255, 255, 255, 0.24), height: 1),
+        ),
       ),
+
+      // ✅ พื้นหลัง RadialBackground
+      body: RadialBackground(
+        bg: const Color(0xFF181717),
+        child: SafeArea(child: _buildProfileContent(context)),
+      ),
+
+      bottomNavigationBar: const NavBar(currentIndex: 2),
     );
   }
-}
 
-class _InfoTile extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-
-  const _InfoTile({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+  Widget _buildProfileContent(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const SizedBox(height: 20),
+
+          // ✅ โปรไฟล์แบบวงกลม gradient
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 255, 255, 0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1), width: 1),
-            ),
-            child: Icon(
-              icon,
-              color: const Color.fromRGBO(255, 255, 255, 0.8),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color.fromRGBO(255, 255, 255, 0.6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+            width: 110,
+            height: 110,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFF3BA776), Color(0xFF1E7A42)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color.fromRGBO(46, 146, 101, 0.4),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
                 ),
               ],
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: Colors.white,
+              size: 58,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+          Text(
+            username,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(255, 255, 255, 0.08),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color.fromRGBO(255, 255, 255, 0.1),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              email,
+              style: const TextStyle(
+                color: Color.fromRGBO(255, 255, 255, 0.7),
+                fontSize: 14,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // ✅ กรอบสถิติ (เหลือ 2 ช่อง)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color.fromRGBO(26, 26, 26, 0.6),
+                  Color.fromRGBO(36, 36, 36, 0.4),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color.fromRGBO(255, 255, 255, 0.1),
+                width: 1.5,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromRGBO(0, 0, 0, 0.25),
+                  blurRadius: 18,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: const [
+                _StatItem(
+                  icon: Icons.fitness_center,
+                  label: "Workouts",
+                  value: "24",
+                ),
+                _VerticalDivider(),
+                _StatItem(
+                  icon: Icons.timer_outlined,
+                  label: "Minutes",
+                  value: "380",
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 48),
+
+          // ✅ ปุ่ม Logout gradient
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF3BA776), Color(0xFF2E9265)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromRGBO(46, 146, 101, 0.3),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: const Icon(Icons.logout_rounded,
+                  color: Colors.white, size: 22),
+              label: const Text(
+                "Log Out",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/login');
+              },
             ),
           ),
         ],
@@ -355,82 +222,68 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-class _ProfileButton extends StatefulWidget {
+// ✅ Widget สำหรับแสดงสถิติแต่ละช่อง
+class _StatItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
-  final bool isDestructive;
+  final String value;
 
-  const _ProfileButton({
+  const _StatItem({
     required this.icon,
     required this.label,
-    required this.onTap,
-    this.isDestructive = false,
+    required this.value,
   });
 
   @override
-  State<_ProfileButton> createState() => _ProfileButtonState();
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF2E9265), size: 26),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color.fromRGBO(255, 255, 255, 0.6),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _ProfileButtonState extends State<_ProfileButton> {
-  bool _isPressed = false;
+// ✅ Divider ตรงกลางสวย ๆ แบบ gradient
+class _VerticalDivider extends StatelessWidget {
+  const _VerticalDivider();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedScale(
-            scale: _isPressed ? 0.98 : 1.0,
-            duration: const Duration(milliseconds: 100),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 255, 255, 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color.fromRGBO(255, 255, 255, 0.1),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    widget.icon,
-                    color: widget.isDestructive
-                        ? const Color(0xFFEF4444)
-                        : const Color.fromRGBO(255, 255, 255, 0.8),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: widget.isDestructive
-                            ? const Color(0xFFEF4444)
-                            : Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color.fromRGBO(255, 255, 255, 0.3),
-                    size: 16,
-                  ),
-                ],
-              ),
-            ),
-          ),
+      width: 1,
+      height: 60,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Color.fromRGBO(255, 255, 255, 0.15),
+            Colors.transparent,
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
     );

@@ -134,8 +134,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             .showSnackBar(SnackBar(content: Text(data["message"])));
         Navigator.pushReplacementNamed(context, '/login');
       } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(data["error"])));
+        final error = data["error"] ?? "Failed to reset password";
+
+        if (error == "New password must be different from the old one") {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("New password must not be the same as the old one"),
+          ));
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error)));
+        }
       }
     } catch (_) {
       if (!mounted) return;

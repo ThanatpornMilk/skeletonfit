@@ -15,8 +15,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -74,15 +73,12 @@ class _HomeScreenState extends State<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-
-                  // Search + Filter
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                     child: SearchFilterBar(
                       controller: _searchController,
                       onTapFilter: () async {
-                        final allExercises =
-                            await ApiService.fetchExercises();
+                        final allExercises = await ApiService.fetchExercises();
                         if (!mounted) return;
 
                         final allMuscles = allExercises
@@ -113,7 +109,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
 
-                  // Filter Chips (แสดงเฉพาะถ้ามีเลือก muscle)
                   if (_selectedMuscles.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
@@ -125,7 +120,8 @@ class _HomeScreenState extends State<HomeScreen>
                             label: Text(m),
                             labelStyle: const TextStyle(color: Colors.white),
                             backgroundColor: const Color(0xFF2E9265),
-                            deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white),
+                            deleteIcon: const Icon(Icons.close,
+                                size: 16, color: Colors.white),
                             onDeleted: () {
                               setState(() {
                                 _selectedMuscles.remove(m);
@@ -136,7 +132,6 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
 
-                  // Exercise list
                   Expanded(child: _buildExerciseList()),
                 ],
               ),
@@ -166,16 +161,13 @@ class _HomeScreenState extends State<HomeScreen>
               return _buildEmptyState();
             }
 
-            // filter ชื่อ + กล้ามเนื้อ
             final exercises = snapshot.data!
                 .where((e) {
                   final matchName = e.name
                       .toLowerCase()
                       .startsWith(_searchQuery.trim().toLowerCase());
-
                   final matchMuscle = _selectedMuscles.isEmpty ||
                       e.muscles.any((m) => _selectedMuscles.contains(m));
-
                   return matchName && matchMuscle;
                 })
                 .toList();
@@ -285,7 +277,6 @@ class _HomeScreenState extends State<HomeScreen>
               customBorder: const CircleBorder(),
               onTap: () {
                 if (!mounted) return;
-                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
