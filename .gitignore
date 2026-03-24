@@ -1,0 +1,42 @@
+# Flutter/Dart related
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/coverage/
+**/test_results/
+
+# Android Studio will place build artifacts here
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+
+# Platform-specific files
+**/android/local.properties
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+
+# Node.js / Backend
+**/node_modules/
+**/npm-debug.log*
+
+# Python (skeleton_lib)
+**/__pycache__/
+**/*.py[cod]
+**/*.so
+**/.venv/
+**/venv/
+**/env/
+
+# Environment Secrets
+**/.env
+**/.env.*
+**/*.jks
+**/*.keystore
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
